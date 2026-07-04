@@ -1,0 +1,18 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: flox/install-flox-action@v2
+      # Reproduces local `flox activate -- make ci`: fmt-check, lint, typecheck,
+      # audit, tests, and proto drift (gen-check). Deps are fetched from the BSR
+      # per the committed buf.lock and from uv.lock.
+      - name: make ci
+        run: flox activate -- make ci

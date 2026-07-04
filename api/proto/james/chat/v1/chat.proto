@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+// A minimal, generic OpenAI-compatible chat-completions contract. It exists to
+// prove the `api` backend seam: invariant-protocol's connect_http projects this
+// service onto an outbound HTTP client, driven by the google.api.http
+// annotation below. Only the fields james needs are modeled; the upstream
+// response is parsed with unknown fields ignored, so any compatible provider
+// (set base_url + model + an API key) can reuse it unchanged.
+package james.chat.v1;
+
+import "google/api/annotations.proto";
+
+// Chat completions over an OpenAI-compatible HTTP endpoint.
+service ChatService {
+  // Create a chat completion.
+  rpc CreateChatCompletion(CreateChatCompletionRequest) returns (CreateChatCompletionResponse) {
+    option (google.api.http) = {
+      post: "/v1/chat/completions"
+      body: "*"
+    };
+  }
+}
+
+// One message in a chat conversation.
+message ChatMessage {
+  // Role: "system" | "user" | "assistant".
+  string role = 1;
+  // Message content.
+  string content = 2;
+}
+
+// Request body for chat completions. The outbound JSON uses the proto3 default
+// (lowerCamelCase) mapping — every field here is single-word, so the keys match
+// the OpenAI schema verbatim ("model", "messages", "role", "content").
+message CreateChatCompletionRequest {
+  // Model id, e.g. "gpt-4o-mini".
+  string model = 1;
+  // The conversation so far.
+  repeated ChatMessage messages = 2;
+}
+
+// A single completion choice.
+message Choice {
+  // The assistant message for this choice.
+  ChatMessage message = 1;
+}
+
+// Response body for chat completions; unknown upstream fields are ignored.
+message CreateChatCompletionResponse {
+  // Completion choices; james reads choices[0].message.content.
+  repeated Choice choices = 1;
+}

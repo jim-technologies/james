@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Thin launcher for the `james` command. Runs from the repo root inside the
+# flox-provided venv, with the flat layout and generated stubs on PYTHONPATH.
+#
+# Usage (inside the flox env, or prefix with `flox activate --`):
+#   ./james serve
+#   ./james cli --backend codex "summarise the README"
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export PYTHONPATH="${ROOT}:${ROOT}/gen/python${PYTHONPATH:+:${PYTHONPATH}}"
+exec uv run --project "${ROOT}" python -m app "$@"

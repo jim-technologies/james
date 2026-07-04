@@ -1,0 +1,38 @@
+---
+# Defaults for the james role. Override in inventory / group_vars.
+
+# Where to check out and run james on each host.
+james_repo_url: "https://github.com/jim-technologies/james.git"
+james_version: "main" # tag / branch / commit to deploy
+james_dir: "/opt/james"
+james_user: "james"
+james_group: "james"
+
+# Path on the control node to the SOPS-encrypted dotenv to ship to the host.
+# Keep the plaintext OUT of source control; this file stays encrypted at rest.
+james_secrets_src: "files/secrets.enc.env"
+
+# Rendered into {{ james_dir }}/config.yaml on the host.
+james_default_backend: "claude"
+james_working_dir: "."
+# Durable, private state under the unit's StateDirectory (/var/lib/james), NOT
+# in the checkout — so per-thread session memory and logged-in browser profiles
+# survive a redeploy / re-clone. The role provisions /var/lib/james (0700).
+james_session_store_path: "/var/lib/james/sessions.json"
+james_browser_profiles_dir: "/var/lib/james/profiles"
+james_telegram_enabled: false
+james_telegram_token_env: "TELEGRAM_BOT_TOKEN"
+james_telegram_allowed_chat_ids: [] # fail-closed allowlist
+james_discord_enabled: false
+james_discord_token_env: "DISCORD_BOT_TOKEN"
+james_discord_allowed_channel_ids: []
+
+# Optional web dashboard (loopback + Basic auth; see README → Web dashboard).
+# Keep bind_host loopback and front it with a TLS+auth reverse proxy / SSH
+# tunnel for remote access. The password comes from the env var named below
+# (in the sops dotenv); an unset/empty password serves nobody (fail-closed).
+james_web_enabled: false
+james_web_bind_host: "127.0.0.1"
+james_web_port: 8765
+james_web_username: "james"
+james_web_token_env: "JAMES_WEB_PASSWORD"

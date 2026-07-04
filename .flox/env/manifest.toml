@@ -1,0 +1,128 @@
+schema-version = "1.12.0"
+
+
+## Install Packages --------------------------------------------------
+##  $ flox install gum  <- puts a package in [install] section below
+##  $ flox search gum   <- search for a package
+##  $ flox show gum     <- show all versions of a package
+## -------------------------------------------------------------------
+[install]
+# Language runtime + package manager (Python deps live in uv.lock, not here).
+python313.pkg-path = "python313"
+uv.pkg-path = "uv"
+# Proto toolchain: buf needs go; protoc (from protobuf) backs `protoc_builtin`.
+buf.pkg-path = "buf"
+go.pkg-path = "go"
+# Pin protoc to the 33.x line: it emits Python gencode "6.33.x", matching the
+# Python protobuf 6.33 runtime (grpcio caps protobuf at <7). protoc 34+ emits
+# "7.34.x" gencode that no released Python protobuf runtime can load yet.
+protobuf.pkg-path = "protobuf"
+protobuf.version = "33.5"
+# Secrets: sops + age decrypt the dotenv at runtime (`sops exec-env`).
+sops.pkg-path = "sops"
+age.pkg-path = "age"
+# Linux-only: provides libstdc++.so.6 for binary wheels (grpcio via
+# invariant-protocol). macOS wheels link the system libc++ and don't need it.
+libgcc.pkg-path = "libgcc"
+libgcc.systems = ["aarch64-linux", "x86_64-linux"]
+# Headless browser for the `shot` backend (web-page screenshots). Linux-only
+# here; it is heavy, but only the `shot` backend needs it.
+chromium.pkg-path = "chromium"
+chromium.systems = ["aarch64-linux", "x86_64-linux"]
+
+
+## Environment Variables ---------------------------------------------
+##  ... available for use in the activated environment
+##      as well as [hook], [profile] scripts and [services] below.
+## -------------------------------------------------------------------
+[vars]
+# Pin uv to the flox-provided interpreter so `uv run/sync` never fetches another.
+UV_PYTHON = "3.13"
+
+
+## Activation Hook ---------------------------------------------------
+##  ... run by _bash_ shell when you run 'flox activate'.
+## -------------------------------------------------------------------
+[hook]
+on-activate = '''
+  # Make the flox-provided libstdc++.so.6 (libgcc) discoverable to Python's
+  # native wheels (grpcio, pulled in by invariant-protocol). Linux only; on
+  # macOS $FLOX_ENV/lib has no libstdc++ and the system libc++ is used.
+  export LD_LIBRARY_PATH="$FLOX_ENV/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+'''
+
+
+## Profile script ----------------------------------------------------
+## ... sourced by _your shell_ when you run 'flox activate'.
+## -------------------------------------------------------------------
+[profile]
+# common = '''
+#   gum style \
+#   --foreground 212 --border-foreground 212 --border double \
+#   --align center --width 50 --margin "1 2" --padding "2 4" \
+#     $INTRO_MESSAGE
+# '''
+## Shell-specific customizations such as setting aliases go here:
+# bash = ...
+# zsh  = ...
+# fish = ...
+
+
+## Services ---------------------------------------------------------
+##  $ flox services start             <- Starts all services
+##  $ flox services status            <- Status of running services
+##  $ flox activate --start-services  <- Activates & starts all
+## ------------------------------------------------------------------
+[services]
+# Run the bot via `flox activate --start-services` or `flox services start james`.
+# Secrets must already be in the environment (e.g. wrap with `sops exec-env`).
+# For production prefer systemd / Nomad — see deploy/.
+james.command = "./james serve"
+
+
+## Containerize -----------------------------------------------------
+## Defaults for `flox containerize` (experimental). NOTE: the image carries the
+## toolchain only — it does NOT bundle project source — so mount the repo at
+## working-dir at runtime. See deploy/README.md. (For a self-contained image,
+## use deploy/Dockerfile instead.)
+[containerize.config]
+user = "1000:1000"
+working-dir = "/opt/james"
+cmd = ["bash", "-lc", "uv sync --frozen --no-dev && exec ./james serve"]
+
+
+## Include ----------------------------------------------------------
+## ... environments to create a composed environment
+## ------------------------------------------------------------------
+[include]
+# environments = [
+#     { dir = "../common" }
+# ]
+
+
+## Build and publish your own packages ------------------------------
+##  $ flox build
+##  $ flox publish
+## ------------------------------------------------------------------
+[build]
+# [build.myproject]
+# description = "The coolest project ever"
+# version = "0.0.1"
+# command = """
+#   mkdir -p $out/bin
+#   cargo build --release
+#   cp target/release/myproject $out/bin/myproject
+# """
+
+
+## Other Environment Options -----------------------------------------
+[options]
+# Systems that environment is compatible with
+# systems = [
+#   "aarch64-darwin",
+#   "aarch64-linux",
+#   "x86_64-darwin",
+#   "x86_64-linux",
+# ]
+# Uncomment to disable CUDA detection.
+# cuda-detection = false

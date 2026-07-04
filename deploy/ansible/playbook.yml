@@ -1,0 +1,12 @@
+---
+# Deploy james to your hosts (host install + systemd). Run:
+#   cp inventory.example.ini inventory.ini   # then edit your hosts
+#   ansible-playbook -i inventory.ini playbook.yml
+#
+# Prerequisites on targets: flox, sops, and an age key for the secrets file.
+# (Add a preceding role/play to install those if your base image lacks them.)
+- name: Deploy james
+  hosts: james
+  become: true
+  roles:
+    - james

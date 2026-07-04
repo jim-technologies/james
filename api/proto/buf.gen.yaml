@@ -1,0 +1,8 @@
+version: v2
+plugins:
+  # protoc's built-in Python generators (protoc is provided by flox); write the
+  # message stubs + type stubs to the repo-root gen/python tree (committed).
+  - protoc_builtin: python
+    out: ../../gen/python
+  - protoc_builtin: pyi
+    out: ../../gen/python

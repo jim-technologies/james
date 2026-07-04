@@ -1,0 +1,34 @@
+{{ ansible_managed | comment }}
+# Rendered by the james Ansible role. Structure only — never secrets.
+default_backend: {{ james_default_backend }}
+working_dir: "{{ james_working_dir }}"
+
+# Durable state under the unit's StateDirectory (see james.service), so memory
+# and logged-in browser profiles survive a redeploy — the in-checkout defaults
+# would be wiped on a re-clone.
+sessions:
+  store_path: "{{ james_session_store_path }}"
+
+browser:
+  profiles_dir: "{{ james_browser_profiles_dir }}"
+
+# Optional web dashboard: loopback + Basic auth (password from the env var
+# named in token_env, via the sops dotenv). Front with a TLS+auth proxy for
+# remote access — never bind it to a public interface bare.
+web:
+  enabled: {{ james_web_enabled | lower }}
+  bind_host: "{{ james_web_bind_host }}"
+  port: {{ james_web_port }}
+  username: "{{ james_web_username }}"
+  token_env: "{{ james_web_token_env }}"
+
+channels:
+  telegram:
+    enabled: {{ james_telegram_enabled | lower }}
+    token_env: {{ james_telegram_token_env }}
+    allowed_chat_ids: {{ james_telegram_allowed_chat_ids | to_json }}
+
+  discord:
+    enabled: {{ james_discord_enabled | lower }}
+    token_env: {{ james_discord_token_env }}
+    allowed_channel_ids: {{ james_discord_allowed_channel_ids | to_json }}

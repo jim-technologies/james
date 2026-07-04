@@ -1,0 +1,65 @@
+[project]
+name = "james"
+version = "0.1.0"
+description = "A personal AI chief-of-staff: a messaging channel dispatches tasks to AI agent backends."
+readme = "README.md"
+requires-python = ">=3.13"
+license = "MIT"
+dependencies = [
+  "invariant-protocol",
+  "httpx>=0.27",
+  "websockets>=13",
+  # ASGI server for the optional web dashboard (app/__main__._serve_web); also a
+  # transitive dep of invariant-protocol's HTTP projection, declared here since
+  # we use it directly.
+  "uvicorn>=0.30",
+  # Official A2A SDK for the `a2a` backends — gRPC-primary with HTTP (JSON-RPC)
+  # fallback, transport negotiation from the peer's Agent Card, A2A v1.0 (+ 0.3
+  # compat). The [grpc] extra adds the gRPC transport. Stays within protobuf<7.
+  "a2a-sdk[grpc]>=1.1",
+  # 6.33 line to match the flox protoc (libprotoc 33.x → gencode 6.33.x); the
+  # runtime must be >= the committed gencode. grpcio caps protobuf at <7.
+  "protobuf>=6.33,<7",
+  "pyyaml>=6",
+]
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6", "ty", "pip-audit"]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+invariant-protocol = { git = "https://github.com/jim-technologies/invariantprotocol.git", subdirectory = "python", rev = "128690f11858364967c6ba619325f3b51c81f3d9" }
+
+[tool.ruff]
+line-length = 80
+target-version = "py313"
+# Generated proto code is committed verbatim (protoc output) and verified by
+# gen-check; exclude it from both the formatter and the linter so they never
+# rewrite it (which would create spurious gen/ drift).
+extend-exclude = ["gen"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "N", "UP", "B", "D", "S", "RUF100"]
+ignore = ["D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107", "N812", "S104"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"apis/**" = ["N802"]            # servicer methods are PascalCase to match proto RPCs
+"infra/**" = ["S110", "S112"]   # graceful-degradation except/pass
+"tests/**" = ["D", "S101", "S105", "S106", "E501"]
+
+[tool.ty.environment]
+python-version = "3.13"
+extra-paths = ["gen/python"]
+
+[tool.ty.src]
+include = ["biz", "infra", "apis", "app"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+# "tests" lets test modules import shared fakes/helpers from conftest.
+pythonpath = [".", "gen/python", "tests"]

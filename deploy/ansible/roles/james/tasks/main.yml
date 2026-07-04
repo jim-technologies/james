@@ -1,0 +1,78 @@
+---
+# Host install of james: check out the repo, install deps via flox+uv, render
+# config, ship the encrypted secrets, and run it under systemd. Idempotent.
+#
+# Assumes flox, sops, and an age key are present on the target (or install them
+# in a preceding play / role). cli backends additionally need a one-time vendor
+# login as the james user — see deploy/README.md.
+
+- name: Create james group
+  ansible.builtin.group:
+    name: "{{ james_group }}"
+    system: true
+
+- name: Create james user
+  ansible.builtin.user:
+    name: "{{ james_user }}"
+    group: "{{ james_group }}"
+    home: "{{ james_dir }}"
+    system: true
+    create_home: false
+
+- name: Check out the james repo
+  ansible.builtin.git:
+    repo: "{{ james_repo_url }}"
+    dest: "{{ james_dir }}"
+    version: "{{ james_version }}"
+  become_user: "{{ james_user }}"
+  notify: Restart james
+
+- name: Fix ownership of the checkout
+  ansible.builtin.file:
+    path: "{{ james_dir }}"
+    owner: "{{ james_user }}"
+    group: "{{ james_group }}"
+    recurse: true
+
+# Idempotent: uv sync is a no-op when the lockfile hasn't changed, and a
+# dependency change only arrives via a new checkout — which already notifies
+# the restart handler above. Reporting "changed" here would restart the
+# service on every run.
+- name: Install Python deps (flox activate -- uv sync)
+  ansible.builtin.command:
+    cmd: flox activate -- uv sync --frozen --no-dev
+    chdir: "{{ james_dir }}"
+  become_user: "{{ james_user }}"
+  changed_when: false
+
+- name: Render config.yaml
+  ansible.builtin.template:
+    src: config.yaml.j2
+    dest: "{{ james_dir }}/config.yaml"
+    owner: "{{ james_user }}"
+    group: "{{ james_group }}"
+    mode: "0644"
+  notify: Restart james
+
+- name: Ship the SOPS-encrypted secrets file (stays encrypted at rest)
+  ansible.builtin.copy:
+    src: "{{ james_secrets_src }}"
+    dest: "{{ james_dir }}/secrets.enc.env"
+    owner: "{{ james_user }}"
+    group: "{{ james_group }}"
+    mode: "0400"
+  notify: Restart james
+
+- name: Install the systemd unit
+  ansible.builtin.template:
+    src: james.service.j2
+    dest: /etc/systemd/system/james.service
+    mode: "0644"
+  notify: Restart james
+
+- name: Enable and start james
+  ansible.builtin.systemd_service:
+    name: james
+    enabled: true
+    state: started
+    daemon_reload: true

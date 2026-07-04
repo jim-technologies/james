@@ -1,0 +1,27 @@
+{{ ansible_managed | comment }}
+[Unit]
+Description=james — AI chief-of-staff
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ james_user }}
+Group={{ james_group }}
+WorkingDirectory={{ james_dir }}
+# Pin HOME (== the james user's home) so cli login state is found, and PATH so
+# flox + sops resolve under systemd's minimal environment.
+Environment=HOME={{ james_dir }}
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/usr/bin/env sops exec-env {{ james_dir }}/secrets.enc.env "flox activate -- ./james serve"
+Restart=on-failure
+RestartSec=5s
+# Persistent, private (0700) state for session memory and browser profiles
+# (config points sessions.store_path / browser.profiles_dir at /var/lib/james),
+# so per-thread memory and logins survive a redeploy that replaces the checkout.
+StateDirectory=james
+StateDirectoryMode=0700
+# cli backends read login state from the service user's home; do not ProtectHome.
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,15 @@
+# Keep the build context (and image) small and reproducible — and keep LOCAL
+# STATE out: browser profiles hold live logins (credentials) and the session
+# store holds conversation state; neither may ever be baked into an image.
+.git
+.venv
+.flox/run
+.flox/cache
+.flox/log
+.ruff_cache
+.pytest_cache
+**/__pycache__
+secrets.env
+secrets.*.env
+.browser-profiles
+.james-sessions.json

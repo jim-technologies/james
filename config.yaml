@@ -1,0 +1,80 @@
+# james configuration — structure only, never secrets. Secrets are read from the
+# environment at runtime (see secrets.example.env). Convention over configuration.
+
+# Backend used when a message names none (a bare message, or `james cli` with no
+# --backend). Must be a key in biz/backends.py REGISTRY.
+default_backend: claude
+
+# Working directory for cli backends, resolved relative to the repo root. This is
+# the agent's read/write/shell sandbox: "." lets agents read this repo (e.g.
+# "/claude summarise the README") but also lets a prompt-injected agent touch the
+# checkout. For untrusted-input tasks, point it at a dedicated workspace that does
+# NOT hold secrets.enc.env or the age key. MCP tools are configured per agent
+# (see README → Tools), not here.
+working_dir: "."
+
+# Max concurrent dispatches per channel — bounds memory (each can spawn a CLI
+# agent or a headless browser). A second message during a long run still acks
+# instantly; it just queues here.
+max_concurrency: 4
+
+# Canonical MCP config — your work tools, in one file (Claude Code .mcp.json
+# format). `make mcp` projects it to the other agents via invariantmcp; setting
+# config_path also passes it to the claude backend (--mcp-config). Put NO secrets
+# here — let servers inherit tokens from the (sops-decrypted) environment.
+# Empty = MCP off. See README → Tools.
+mcp:
+  config_path: ""   # e.g. "mcp/servers.mcp.json"
+
+# Per-conversation agent memory. Each chat thread (a Telegram topic / Discord
+# thread) maps to a persistent agent session (claude/codex/grok/opencode), so
+# follow-ups remember context and you can answer the agent's questions in-thread.
+# A dead/pruned session self-heals to a fresh one. `/reset` forgets a thread.
+# Resolved relative to the repo root; for a systemd deploy set an absolute path
+# under StateDirectory (e.g. /var/lib/james/sessions.json). Holds session ids,
+# not secrets — but gitignored.
+sessions:
+  store_path: ".james-sessions.json"
+
+# Headless-browser sessions for the `shot` backend. Each profile is a persistent
+# Chrome user-data-dir under profiles_dir, holding a logged-in session. Select
+# one per message: `/shot:<profile> <url>` (bare `/shot` uses default_profile).
+# Seed a profile once with `james login <profile>`. SECURE profiles_dir — it
+# holds live logins — and never commit it (see .gitignore).
+browser:
+  # Dev default writes inside the checkout. For a systemd deploy set an absolute
+  # path (e.g. /var/lib/james/profiles) so StateDirectory persists it; relative
+  # paths resolve against the repo root.
+  profiles_dir: ".browser-profiles"
+  default_profile: "default"
+
+# Optional web dashboard: list your sessions and send prompts from a browser,
+# riding the SAME dispatch path (and secret-stripping) as the chat channels.
+# Off by default. Bound to loopback (127.0.0.1) and guarded by HTTP Basic auth;
+# the password comes from the env var named below (via the sops dotenv), never
+# stored here. For remote access, front it with a TLS-terminating auth reverse
+# proxy or an SSH tunnel — never bind it to a public interface bare. A fresh
+# thread shows no history until you send (Phase 1). See README → Web dashboard.
+web:
+  enabled: false
+  bind_host: "127.0.0.1"
+  port: 8765
+  username: "james"
+  token_env: "JAMES_WEB_PASSWORD"   # Basic-auth password source (empty = off)
+
+channels:
+  telegram:
+    enabled: true
+    token_env: TELEGRAM_BOT_TOKEN
+    # Fail-closed allowlist: only these chat ids are served. Empty = nobody.
+    allowed_chat_ids: []          # <-- add your Telegram chat id, e.g. [123456789]
+
+  discord:
+    enabled: false
+    token_env: DISCORD_BOT_TOKEN
+    # Fail-closed allowlist of channel ids. Empty = nobody.
+    allowed_channel_ids: []
+
+# Optional: also project DispatchService over HTTP (POST /v1/dispatch).
+# server:
+#   http_port: 8080

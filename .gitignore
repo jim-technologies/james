@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Secrets: never commit plaintext or encrypted dotenvs; only the .example is kept.
+secrets.env
+secrets.*.env
+!secrets.example.env
+
+# Browser profiles hold live logins — never commit them.
+.browser-profiles/
+
+# Scratch dir for `make mcp` (invariantmcp format conversion).
+.mcp-build/
+
+# Per-conversation session-id store (runtime state, not a secret).
+.james-sessions.json
+.james-sessions.json.tmp
+
+# Tooling caches
+.ruff_cache/
+.pytest_cache/
+.ty_cache/
+
+# Note: gen/ is intentionally NOT ignored — generated proto code is committed
+# and verified by `make gen-check`.

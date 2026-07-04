@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>james</title>
+    <link rel="stylesheet" href="/ui/style.css" />
+  </head>
+  <body>
+    <aside id="sidebar">
+      <header>
+        <span class="brand">james</span>
+        <button id="new-btn" title="New conversation">+ new</button>
+      </header>
+      <div class="new-row" id="new-row" hidden>
+        <select id="new-backend">
+          <option value="claude">claude</option>
+          <option value="codex">codex</option>
+          <option value="grok">grok</option>
+          <option value="opencode">opencode</option>
+          <option value="openclaw">openclaw</option>
+          <option value="gpt">gpt</option>
+          <option value="shot">shot</option>
+        </select>
+        <button id="new-go">start</button>
+      </div>
+      <ul id="sessions"></ul>
+      <footer id="side-foot"></footer>
+    </aside>
+    <main id="main">
+      <div id="thread-head">
+        <span id="thread-title">Select or start a conversation</span>
+      </div>
+      <div id="log"></div>
+      <form id="composer">
+        <textarea
+          id="prompt"
+          rows="2"
+          placeholder="Type a task… (Enter to send, Shift+Enter for newline)"
+          disabled
+        ></textarea>
+        <button id="send" type="submit" disabled>send</button>
+      </form>
+    </main>
+    <script src="/ui/app.js"></script>
+  </body>
+</html>

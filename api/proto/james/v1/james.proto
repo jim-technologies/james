@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+// The james dispatch contract: receive a task, route it to an AI agent
+// backend, return the result. This proto is the canonical interface — the
+// internal contract, not just an external API. invariant-protocol projects it
+// to CLI / HTTP / MCP from one compiled descriptor, so there are no
+// hand-written servers or transport here.
+package james.v1;
+
+import "google/api/annotations.proto";
+
+// Routes a prompt to a named AI agent backend and returns its output.
+service DispatchService {
+  // Dispatch a prompt to a backend and return the agent's response.
+  rpc Dispatch(DispatchRequest) returns (DispatchResponse) {
+    option (google.api.http) = {
+      post: "/v1/dispatch"
+      body: "*"
+    };
+  }
+
+  // List the conversations that currently have a stored agent session, so a
+  // client (e.g. the web dashboard) can show the threads. Read-only.
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse) {
+    option (google.api.http) = {get: "/v1/sessions"};
+  }
+}
+
+// Request to list stored sessions (no filters in this version).
+message ListSessionsRequest {}
+
+// One stored conversation: its backend and conversation key (the dispatch
+// session_key). Identifies a thread; carries no transcript.
+message SessionInfo {
+  // Backend name, e.g. "claude".
+  string backend = 1;
+  // The conversation key (e.g. "telegram:123:45" or "web:...").
+  string conversation_id = 2;
+}
+
+// The stored sessions.
+message ListSessionsResponse {
+  repeated SessionInfo sessions = 1;
+}
+
+// A task to run on an agent backend.
+message DispatchRequest {
+  // Which agent backend to use; empty selects the default backend.
+  string backend = 1;
+  // The task / prompt text to send to the backend.
+  string prompt = 2;
+  // Originating channel ("telegram" | "discord" | "web" | "cli"); for
+  // observability.
+  string channel = 3;
+  // Conversation key (a chat/thread id). Selects the per-thread agent session
+  // (memory) and serializes same-conversation dispatches; empty = a stateless
+  // one-shot.
+  string conversation_id = 4;
+}
+
+// The result of a dispatch.
+message DispatchResponse {
+  // The backend that actually handled the request.
+  string backend = 1;
+  // Whether the backend ran successfully.
+  bool ok = 2;
+  // The agent's output text (set when ok).
+  string text = 3;
+  // A human-readable error (set when not ok).
+  string error = 4;
+  // Files produced by the backend (e.g. a screenshot) to deliver to the chat.
+  repeated Artifact artifacts = 5;
+}
+
+// A file produced by a backend, delivered inline (transport-independent).
+message Artifact {
+  // The file's raw bytes (e.g. PNG data). Inlined so no host path crosses the
+  // wire: channels and HTTP/MCP callers consume the same self-contained message.
+  bytes content = 1;
+  // MIME type, e.g. "image/png".
+  string mime = 2;
+  // Suggested filename for the chat upload.
+  string filename = 3;
+}

@@ -1,0 +1,44 @@
+# Generic systemd unit for a host install (supports cli + api backends).
+# Place at /etc/systemd/system/james.service, adjust the placeholders, then:
+#   systemctl daemon-reload && systemctl enable --now james
+#
+# Assumes: the repo is checked out at WorkingDirectory, `flox` and `sops` are on
+# PATH, `uv sync` has been run once, the `james` user owns the dir, and that
+# user has completed the one-time vendor CLI logins (claude/codex/grok/opencode)
+# and holds the age key to decrypt the secrets file. See deploy/README.md.
+
+[Unit]
+Description=james — AI chief-of-staff
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=james
+Group=james
+WorkingDirectory=/opt/james
+# Pin HOME so cli backends find their login state at the SAME place you ran the
+# one-time login (must match the james user's home — here the checkout).
+Environment=HOME=/opt/james
+# Services get a minimal PATH; ensure flox + sops resolve. Append their install
+# dirs if not in the system path (the NixOS module handles this via `path`).
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# Decrypt the SOPS+age dotenv into the process environment, then serve.
+ExecStart=/usr/bin/env sops exec-env /opt/james/secrets.enc.env "flox activate -- ./james serve"
+Restart=on-failure
+RestartSec=5s
+# Persistent, private (0700) state for browser profiles — point
+# browser.profiles_dir at /var/lib/james/profiles in config.yaml.
+StateDirectory=james
+StateDirectoryMode=0700
+# ProtectHome is left off on purpose: cli backends read their login state from
+# the service user's home (~/.claude, ~/.codex, ~/.grok).
+# Egress allowlist (strongly recommended once agents hold secrets): restrict
+# outbound traffic to the provider APIs, Telegram, and your DB/broker so a
+# prompt-injected agent can't exfiltrate. Must include everything james needs
+# or it breaks. Example (uncomment + set real CIDRs):
+#   IPAddressDeny=any
+#   IPAddressAllow=localhost 149.154.160.0/20 91.108.4.0/22  # +provider/DB CIDRs
+
+[Install]
+WantedBy=multi-user.target

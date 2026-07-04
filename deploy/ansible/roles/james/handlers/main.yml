@@ -1,0 +1,6 @@
+---
+- name: Restart james
+  ansible.builtin.systemd_service:
+    name: james
+    state: restarted
+    daemon_reload: true
