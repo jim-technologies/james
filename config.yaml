@@ -30,9 +30,10 @@ mcp:
 # thread) maps to a persistent agent session (claude/codex/grok/opencode), so
 # follow-ups remember context and you can answer the agent's questions in-thread.
 # A dead/pruned session self-heals to a fresh one. `/reset` forgets a thread.
-# Resolved relative to the repo root; for a systemd deploy set an absolute path
-# under StateDirectory (e.g. /var/lib/james/sessions.json). Holds session ids,
-# not secrets — but gitignored.
+# Resolved relative to this file's directory; for a systemd deploy set an
+# absolute path under StateDirectory (e.g. /var/lib/james/sessions.json). Holds
+# session ids, not secrets — but gitignored. Set "" to run STATELESS: no file is
+# ever written and every message is a self-contained one-shot (no memory).
 sessions:
   store_path: ".james-sessions.json"
 

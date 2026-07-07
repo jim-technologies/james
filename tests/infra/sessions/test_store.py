@@ -90,6 +90,21 @@ async def test_corrupt_file_self_heals(tmp_path):
     assert sid and resume is False
 
 
+async def test_unwritable_store_degrades_to_memoryless(tmp_path):
+    # A store that cannot persist must not fail the dispatch: resolve still
+    # hands out a usable id (as a create), it just won't be remembered.
+    root = tmp_path / "ro"
+    root.mkdir()
+    store = JsonSessionStore(str(root / "s.json"))
+    root.chmod(0o500)
+    try:
+        sid, resume = await store.resolve("claude", "k1")
+        assert sid and resume is False  # no exception out of infra
+        await store.record("codex", "k1", "thread-1")  # also silent
+    finally:
+        root.chmod(0o700)
+
+
 async def test_capture_resolve_does_not_mint(tmp_path):
     # Capture backends (mint=False): a fresh key returns no id (the CLI mints it),
     # and only after record() does the key resume.

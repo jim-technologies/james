@@ -7,6 +7,7 @@ service, and chunk the reply to the platform's per-message limit.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Awaitable, Callable
 
 from james.v1 import james_pb2
@@ -22,8 +23,11 @@ def parse_command(text: str) -> tuple[str, str]:
     """Split an incoming message into (backend, prompt).
 
     A leading "/word" selects a backend ("/claude summarise" -> ("claude",
-    "summarise")), and a "@botname" suffix on the command word is stripped. Any
-    other message routes to the default backend (an empty backend is returned).
+    "summarise")), and a "@botname" suffix on the command word is stripped. The
+    command word ends at the FIRST whitespace of any kind — a newline right
+    after the command (common when pasting a multi-line prompt) starts the
+    prompt just like a space. Any other message routes to the default backend
+    (an empty backend is returned).
 
     Args:
         text: The raw inbound message text.
@@ -33,10 +37,30 @@ def parse_command(text: str) -> tuple[str, str]:
     """
     stripped = text.strip()
     if stripped.startswith("/"):
-        head, _, rest = stripped[1:].partition(" ")
+        head, *rest = re.split(r"\s+", stripped[1:], maxsplit=1)
         backend = head.split("@", 1)[0].strip().lower()
-        return backend, rest.strip()
+        return backend, (rest[0].strip() if rest else "")
     return "", stripped
+
+
+async def reset_note(
+    reset_session: Callable[[str], Awaitable[int]] | None, key: str
+) -> str:
+    """Forget a conversation's sessions and word the reply.
+
+    ``reset_session`` is None in stateless mode (no session store) — nothing
+    to forget, but ``/reset`` still deserves an answer rather than being
+    dispatched to a backend named "reset".
+
+    Args:
+        reset_session: The store's reset callable, or None when stateless.
+        key: The conversation key to forget.
+
+    Returns:
+        The user-facing note ("started fresh" / "nothing to reset").
+    """
+    removed = await reset_session(key) if reset_session is not None else 0
+    return "started fresh" if removed else "nothing to reset"
 
 
 def chunk_text(text: str, limit: int) -> list[str]:

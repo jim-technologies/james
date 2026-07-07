@@ -65,6 +65,15 @@ async def test_servicer_unknown_backend_returns_help():
     assert "Unknown backend" in resp.error
 
 
+async def test_servicer_lists_backends_and_default():
+    resp = await _servicer().ListBackends(james_pb2.ListBackendsRequest(), None)
+    kinds = {b.name: b.kind for b in resp.backends}
+    assert kinds["claude"] == "cli"
+    assert kinds["gpt"] == "api"
+    assert kinds["shot"] == "cli"
+    assert resp.default_backend == "claude"
+
+
 async def test_servicer_list_sessions_maps_store():
     store = FakeSessionStore()
     await store.resolve("claude", "42:7")

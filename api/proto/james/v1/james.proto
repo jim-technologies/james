@@ -24,6 +24,33 @@ service DispatchService {
   rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse) {
     option (google.api.http) = {get: "/v1/sessions"};
   }
+
+  // List the available backends (the registry) and the configured default, so
+  // a client (the web dashboard, an embedding application) can offer the
+  // choices without duplicating the registry. Read-only.
+  rpc ListBackends(ListBackendsRequest) returns (ListBackendsResponse) {
+    option (google.api.http) = {get: "/v1/backends"};
+  }
+}
+
+// Request to list the available backends (no filters in this version).
+message ListBackendsRequest {}
+
+// One registry row, as a client needs to present it: the routable name and
+// its kind. Carries no argv/env/secret details — those stay server-side.
+message BackendInfo {
+  // Backend name as used in a DispatchRequest, e.g. "claude".
+  string name = 1;
+  // Backend kind: "cli" | "api" | "a2a".
+  string kind = 2;
+}
+
+// The available backends and the configured default.
+message ListBackendsResponse {
+  // Every registry row, in registry order.
+  repeated BackendInfo backends = 1;
+  // The backend used when a DispatchRequest names none.
+  string default_backend = 2;
 }
 
 // Request to list stored sessions (no filters in this version).

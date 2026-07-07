@@ -11,9 +11,11 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+from collections.abc import Mapping
 
 from james.v1 import james_pb2
 
+from biz.backends import REGISTRY, Backend
 from biz.dispatch import A2ACaller, ApiCaller, CliRunner, SessionStore, dispatch
 
 
@@ -32,10 +34,12 @@ class DispatchServiceImpl:
         mcp_config: str = "",
         session_store: SessionStore | None = None,
         a2a_caller: A2ACaller | None = None,
+        registry: Mapping[str, Backend] = REGISTRY,
     ) -> None:
         self._cli_runner = cli_runner
         self._api_caller = api_caller
         self._a2a_caller = a2a_caller
+        self._registry = registry
         self._default_backend = default_backend
         self._cwd = cwd
         self._profiles_dir = profiles_dir
@@ -70,6 +74,7 @@ class DispatchServiceImpl:
                 cli_runner=self._cli_runner,
                 api_caller=self._api_caller,
                 a2a_caller=self._a2a_caller,
+                registry=self._registry,
                 profiles_dir=self._profiles_dir,
                 default_profile=self._default_profile,
                 mcp_config=self._mcp_config,
@@ -87,6 +92,19 @@ class DispatchServiceImpl:
                 )
                 for a in result.artifacts
             ],
+        )
+
+    # PascalCase to match the proto RPC (see Dispatch). Read-only listing so a
+    # client (the web dashboard, an embedding app) can offer the backend
+    # choices without duplicating the registry.
+    async def ListBackends(self, request, context):
+        """Return the registry rows and the configured default backend."""
+        return james_pb2.ListBackendsResponse(
+            backends=[
+                james_pb2.BackendInfo(name=b.name, kind=b.kind)
+                for b in self._registry.values()
+            ],
+            default_backend=self._default_backend,
         )
 
     # PascalCase to match the proto RPC (see Dispatch). Read-only listing for a

@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+import sys
 from collections.abc import Awaitable, Callable
 
 import httpx
@@ -19,7 +20,12 @@ import websockets
 from james.v1 import james_pb2
 from websockets.exceptions import WebSocketException
 
-from infra.channels.common import Invoker, chunk_text, parse_command
+from infra.channels.common import (
+    Invoker,
+    chunk_text,
+    parse_command,
+    reset_note,
+)
 
 _DISCORD_LIMIT = 2000
 _GATEWAY = "wss://gateway.discord.gg/?v=10&encoding=json"
@@ -59,7 +65,24 @@ class DiscordChannel:
         while True:
             try:
                 await self._session()
-            except (WebSocketException, OSError):
+            except (
+                WebSocketException,
+                OSError,
+                # Malformed gateway frames: bad JSON (ValueError), a missing
+                # field (KeyError), "d": null or a non-object frame
+                # (TypeError/AttributeError). One bad frame must not crash the
+                # whole serve loop — but say so, or a persistent mismatch
+                # becomes an invisible reconnect spin.
+                ValueError,
+                KeyError,
+                TypeError,
+                AttributeError,
+            ) as exc:
+                print(
+                    f"discord: gateway session error ({exc!r}); "
+                    "reconnecting in 5s",
+                    file=sys.stderr,
+                )
                 await asyncio.sleep(5)  # reconnect after a brief backoff
 
     async def _session(self) -> None:
@@ -134,9 +157,8 @@ class DiscordChannel:
         backend, prompt = parse_command(message.get("content") or "")
         # Each channel (a Discord thread is its own channel id) is its own
         # conversation/session; `/reset` forgets it — mirroring Telegram.
-        if backend == "reset" and self._reset_session is not None:
-            removed = await self._reset_session(str(channel_id))
-            note = "started fresh" if removed else "nothing to reset"
+        if backend == "reset":
+            note = await reset_note(self._reset_session, str(channel_id))
             await self._send(channel_id, f"🆕 {note} for this channel.")
             return
         if not prompt:

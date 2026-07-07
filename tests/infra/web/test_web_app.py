@@ -129,6 +129,42 @@ async def test_static_traversal_is_refused(tmp_path):
     assert status == 404
 
 
+async def test_ui_prefix_requires_a_slash(tmp_path):
+    # "/uifoo" is not a static path — it must delegate to the wrapped app, not
+    # resolve as a file under the static dir.
+    inner = _InnerApp()
+    app = _app(tmp_path, inner=inner)
+    status, _b, _h = await _call(
+        app, path="/uifoo", headers=_basic("james", "s3cret")
+    )
+    assert status == 200 and inner.called is True
+
+
+async def test_non_ascii_credentials_compare_cleanly(tmp_path):
+    # compare_digest rejects non-ASCII str; creds are compared as bytes so a
+    # unicode password authenticates (and a wrong one 401s) instead of raising.
+    inner = _InnerApp()
+    app = _app(tmp_path, password="sécret", inner=inner)
+    status, _b, _h = await _call(
+        app, path="/", headers=_basic("james", "sécret")
+    )
+    assert status == 200
+    status, _b, _h = await _call(
+        app, path="/", headers=_basic("james", "wrong")
+    )
+    assert status == 401
+
+
+async def test_basic_scheme_is_case_insensitive(tmp_path):
+    # RFC 7617: the auth-scheme token is case-insensitive.
+    app = _app(tmp_path)
+    raw = base64.b64encode(b"james:s3cret").decode()
+    status, _b, _h = await _call(
+        app, path="/", headers=[(b"authorization", f"basic {raw}".encode())]
+    )
+    assert status == 200
+
+
 async def test_api_path_delegates_to_inner(tmp_path):
     inner = _InnerApp()
     app = _app(tmp_path, inner=inner)

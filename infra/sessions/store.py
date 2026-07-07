@@ -14,9 +14,9 @@ atomic and a lock guards the read-modify-write.
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import json
 import os
+import sys
 import uuid
 from pathlib import Path
 
@@ -31,6 +31,7 @@ class JsonSessionStore:
     def __init__(self, path: str) -> None:
         self._path = Path(path)
         self._lock = asyncio.Lock()
+        self._warned = False
 
     def _load(self) -> dict[str, dict]:
         try:
@@ -39,10 +40,25 @@ class JsonSessionStore:
             return {}
 
     def _save(self, data: dict[str, dict]) -> None:
-        self._path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = self._path.with_name(self._path.name + ".tmp")
-        tmp.write_text(json.dumps(data, indent=2, sort_keys=True))
-        os.replace(tmp, self._path)
+        """Persist best-effort: never raises out of infra.
+
+        An unwritable store degrades to memoryless dispatch (the run proceeds,
+        it just won't be remembered) — but loudly, once, so an operator can
+        tell a permissions mistake apart from a healthy deploy.
+        """
+        try:
+            self._path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = self._path.with_name(self._path.name + ".tmp")
+            tmp.write_text(json.dumps(data, indent=2, sort_keys=True))
+            os.replace(tmp, self._path)
+        except OSError as exc:
+            if not self._warned:
+                self._warned = True
+                print(
+                    f"warning: session store {self._path} is not writable "
+                    f"({exc}); continuing WITHOUT conversation memory.",
+                    file=sys.stderr,
+                )
 
     async def resolve(
         self, backend: str, key: str, *, mint: bool = True
@@ -60,7 +76,9 @@ class JsonSessionStore:
         False) and the caller persists the captured id later via ``record``.
 
         A missing, non-dict, or id-less entry is treated as absent, so a corrupt
-        or hand-edited file self-heals rather than raising out of infra.
+        or hand-edited file self-heals rather than raising out of infra. An
+        unwritable store likewise degrades — the run proceeds without memory
+        (matching ``record``/``forget``) rather than failing the dispatch.
         """
         ident = f"{backend}{_SEP}{key}"
         async with self._lock:
@@ -87,8 +105,7 @@ class JsonSessionStore:
         async with self._lock:
             data = self._load()
             data[ident] = {"id": session_id}
-            with contextlib.suppress(OSError):
-                self._save(data)
+            self._save(data)
 
     async def forget(self, backend: str, key: str) -> None:
         """Drop one backend's session for a conversation (e.g. a dead resume).
@@ -103,8 +120,7 @@ class JsonSessionStore:
             data = self._load()
             if ident in data:
                 del data[ident]
-                with contextlib.suppress(OSError):
-                    self._save(data)
+                self._save(data)
 
     async def list_sessions(self) -> list[tuple[str, str]]:
         """Return (backend, conversation_key) for every stored session.
@@ -132,6 +148,5 @@ class JsonSessionStore:
             for k in stale:
                 del data[k]
             if stale:
-                with contextlib.suppress(OSError):
-                    self._save(data)
+                self._save(data)
             return len(stale)

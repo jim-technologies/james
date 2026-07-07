@@ -30,6 +30,7 @@ import asyncio
 import contextlib
 import json
 import os
+import signal
 import tempfile
 from collections.abc import Iterator, Mapping, Sequence
 
@@ -161,12 +162,20 @@ class SubprocessCliRunner:
             fd, outfile = tempfile.mkstemp(suffix=artifact_suffix or "")
             os.close(fd)
         if user_data_dir:
-            # 0700 on the profile and its parent: they hold live logins.
+            # The profile dir holds live logins: create it 0700 and tighten it
+            # even when it pre-existed looser (makedirs' mode applies only to
+            # dirs it creates). The parent is created 0700 too, but a
+            # pre-existing parent's mode is the operator's choice — left alone.
+            # Each step gets its own suppress so one failure (e.g. EPERM on an
+            # unowned parent) can't skip tightening the profile dir itself.
             parent = os.path.dirname(user_data_dir)
-            with contextlib.suppress(OSError):
-                if parent:
+            if parent:
+                with contextlib.suppress(OSError):
                     os.makedirs(parent, mode=0o700, exist_ok=True)
+            with contextlib.suppress(OSError):
                 os.makedirs(user_data_dir, mode=0o700, exist_ok=True)
+            with contextlib.suppress(OSError):
+                os.chmod(user_data_dir, 0o700)
 
         # Substitute {outfile}/{profile_dir} first (template), then {prompt} —
         # so a prompt value containing a placeholder literal is not re-scanned.
@@ -227,6 +236,17 @@ class SubprocessCliRunner:
         )
         return (rc, out if reply is None else reply, err, artifact, captured)
 
+    @staticmethod
+    def _kill_tree(proc: asyncio.subprocess.Process) -> None:
+        """SIGKILL the child's whole process group (agents spawn helpers).
+
+        The child is a session leader (start_new_session), so its group id is
+        its pid and exists as long as it does; suppress covers the
+        already-reaped race.
+        """
+        with contextlib.suppress(OSError):
+            os.killpg(proc.pid, signal.SIGKILL)
+
     async def _spawn(
         self,
         resolved: list[str],
@@ -246,6 +266,11 @@ class SubprocessCliRunner:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 env=env,
+                # Own process group, so a timeout can kill the whole tree:
+                # agent CLIs spawn tool children and chromium spawns helpers,
+                # which would otherwise outlive the kill (a leaked chromium
+                # keeps its profile locked, wedging later runs on it).
+                start_new_session=True,
             )
         except FileNotFoundError:
             return (-1, "", f"command not found: {first}", b"")
@@ -259,9 +284,17 @@ class SubprocessCliRunner:
                 proc.communicate(input=stdin_data), timeout=timeout_s
             )
         except TimeoutError:
-            proc.kill()
+            self._kill_tree(proc)
             await proc.wait()
             return (-1, "", f"timed out after {timeout_s:g}s", b"")
+        except asyncio.CancelledError:
+            # james itself is stopping (Ctrl+C / task cancelled). The child is
+            # in its own session (start_new_session), so the terminal's SIGINT
+            # never reaches it — kill the tree here or it outlives james (a
+            # leaked chromium would keep its profile locked).
+            self._kill_tree(proc)
+            await proc.wait()
+            raise
 
         rc = proc.returncode or 0
         artifact = b""

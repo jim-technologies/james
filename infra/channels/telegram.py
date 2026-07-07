@@ -18,7 +18,12 @@ from collections.abc import Awaitable, Callable
 import httpx
 from james.v1 import james_pb2
 
-from infra.channels.common import Invoker, chunk_text, parse_command
+from infra.channels.common import (
+    Invoker,
+    chunk_text,
+    parse_command,
+    reset_note,
+)
 
 _TELEGRAM_LIMIT = 4096
 _API = "https://api.telegram.org"
@@ -86,9 +91,8 @@ class TelegramChannel:
         thread_id = message.get("message_thread_id")
         convo = f"{chat_id}:{thread_id}" if thread_id else str(chat_id)
         backend, prompt = parse_command(message.get("text") or "")
-        if backend == "reset" and self._reset_session is not None:
-            removed = await self._reset_session(convo)
-            note = "started fresh" if removed else "nothing to reset"
+        if backend == "reset":
+            note = await reset_note(self._reset_session, convo)
             await self._send(chat_id, f"🆕 {note} for this thread.", thread_id)
             return
         if not prompt:

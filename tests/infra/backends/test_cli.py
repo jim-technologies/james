@@ -151,6 +151,108 @@ async def test_timeout_is_clean_error():
     assert code == -1 and "timed out" in err
 
 
+async def test_timeout_kills_the_whole_process_group(tmp_path):
+    # Agents spawn their own children (tool processes, chromium helpers); on a
+    # timeout the runner must kill the whole group, or a leaked chromium keeps
+    # its profile locked. The child writes its grandchild's pid to a file and
+    # then outsleeps the timeout; the grandchild must be gone afterwards.
+    pid_file = tmp_path / "grandchild.pid"
+    prog = (
+        "import subprocess,time;"
+        f"p=subprocess.Popen([{PY!r},'-c','import time;time.sleep(60)']);"
+        f"open({str(pid_file)!r},'w').write(str(p.pid));"
+        "time.sleep(60)"
+    )
+    runner = SubprocessCliRunner()
+    code, _out, err, _art, _sid = await runner.run(
+        (PY, "-c", prog),
+        "x",
+        cwd=".",
+        env_set={},
+        env_unset=(),
+        secret_env={},
+        timeout_s=2.0,
+    )
+    assert code == -1 and "timed out" in err
+    pid = int(pid_file.read_text())
+    for _ in range(40):  # allow a moment for init to reap the orphan
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            break
+        await asyncio.sleep(0.05)
+    else:
+        os.kill(pid, 9)  # don't leak it out of the test suite
+        raise AssertionError("grandchild survived the timeout kill")
+
+
+async def test_cancellation_kills_the_whole_process_group(tmp_path):
+    # The child runs in its own session, so james's own Ctrl+C/SIGTERM never
+    # reaches it via the terminal; on cancellation the runner must kill the
+    # tree itself or the agent (and e.g. its chromium) outlives james.
+    pid_file = tmp_path / "grandchild.pid"
+    prog = (
+        "import subprocess,time;"
+        f"p=subprocess.Popen([{PY!r},'-c','import time;time.sleep(60)']);"
+        f"open({str(pid_file)!r},'w').write(str(p.pid));"
+        "time.sleep(60)"
+    )
+    runner = SubprocessCliRunner()
+    task = asyncio.create_task(
+        runner.run(
+            (PY, "-c", prog),
+            "x",
+            cwd=".",
+            env_set={},
+            env_unset=(),
+            secret_env={},
+            timeout_s=60,
+        )
+    )
+    for _ in range(100):  # wait for the grandchild pid to land on disk
+        if pid_file.exists() and pid_file.read_text():
+            break
+        await asyncio.sleep(0.05)
+    else:
+        task.cancel()
+        raise AssertionError("child never started")
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+    pid = int(pid_file.read_text())
+    for _ in range(40):  # allow a moment for init to reap the orphan
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            break
+        await asyncio.sleep(0.05)
+    else:
+        os.kill(pid, 9)  # don't leak it out of the test suite
+        raise AssertionError("grandchild survived the cancellation kill")
+
+
+async def test_existing_loose_profile_dir_is_tightened(tmp_path):
+    # makedirs' mode applies only to dirs it creates; a pre-existing profile
+    # dir at a looser mode must still be chmodded private (it holds logins).
+    profile = tmp_path / "work"
+    profile.mkdir(mode=0o755)
+    runner = SubprocessCliRunner()
+    code, _out, _err, _art, _sid = await runner.run(
+        (PY, "-c", "pass", "--user-data-dir={profile_dir}"),
+        "",
+        cwd=".",
+        env_set={},
+        env_unset=(),
+        secret_env={},
+        timeout_s=30,
+        user_data_dir=str(profile),
+    )
+    assert code == 0
+    assert (os.stat(profile).st_mode & 0o777) == 0o700
+
+
 async def test_nul_byte_in_placeholder_prompt_is_clean_error():
     # A NUL in the prompt would raise ValueError from create_subprocess_exec
     # when delivered via a {prompt} placeholder; it must be returned, not raised.

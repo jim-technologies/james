@@ -7,6 +7,26 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
+class ListBackendsRequest(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class BackendInfo(_message.Message):
+    __slots__ = ("name", "kind")
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    KIND_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    kind: str
+    def __init__(self, name: _Optional[str] = ..., kind: _Optional[str] = ...) -> None: ...
+
+class ListBackendsResponse(_message.Message):
+    __slots__ = ("backends", "default_backend")
+    BACKENDS_FIELD_NUMBER: _ClassVar[int]
+    DEFAULT_BACKEND_FIELD_NUMBER: _ClassVar[int]
+    backends: _containers.RepeatedCompositeFieldContainer[BackendInfo]
+    default_backend: str
+    def __init__(self, backends: _Optional[_Iterable[_Union[BackendInfo, _Mapping]]] = ..., default_backend: _Optional[str] = ...) -> None: ...
+
 class ListSessionsRequest(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...

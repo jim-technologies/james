@@ -1,10 +1,12 @@
-"""CLI entry point and wiring for james.
+"""CLI entry point for james.
 
-Wires the layers: build the infra adapters, build the invariant-protocol Server
-from the committed descriptor, register the DispatchService servicer, then run
-the enabled channels (``serve``) or perform a one-shot dispatch (``cli``).
-Both paths go through the same service invoke, so channels and the CLI share one
-routing path and neither talks to a backend directly.
+Thin argument parsing over the importable composition root (``app.wiring``):
+load the config, build the Server, then run the enabled channels (``serve``)
+or perform a one-shot dispatch (``cli``). Both paths go through the same
+service invoke, so channels and the CLI share one routing path and neither
+talks to a backend directly. The config file is the repo's config.yaml by
+default; override with --config or $JAMES_CONFIG (relative paths inside the
+config resolve against the config file's directory).
 """
 
 from __future__ import annotations
@@ -22,46 +24,13 @@ from pathlib import Path
 from invariant import Server
 from james.v1 import james_pb2
 
-from apis.dispatch_server import DispatchServiceImpl
 from app.config import ChannelConfig, Config, load_config
-from infra.backends.cli import SubprocessCliRunner
+from app.wiring import build_server, build_session_store
 from infra.channels.discord import DiscordChannel
 from infra.channels.telegram import TelegramChannel
-from infra.clients.a2a import A2ASdkCaller
-from infra.clients.chat import ChatApiCaller
-from infra.sessions.store import JsonSessionStore
 
 _ROOT = Path(__file__).resolve().parent.parent
-_DESCRIPTOR = _ROOT / "gen" / "descriptor.binpb"
 _CONFIG = _ROOT / "config.yaml"
-
-
-def _session_store(config: Config) -> JsonSessionStore:
-    """Build the per-conversation session store at the configured path."""
-    return JsonSessionStore(str((_ROOT / config.session_store_path).resolve()))
-
-
-def _build_server(config: Config, store: JsonSessionStore) -> Server:
-    """Build the Server and register the DispatchService servicer."""
-    mcp_config = (
-        str((_ROOT / config.mcp_config_path).resolve())
-        if config.mcp_config_path
-        else ""
-    )
-    servicer = DispatchServiceImpl(
-        cli_runner=SubprocessCliRunner(),
-        api_caller=ChatApiCaller(str(_DESCRIPTOR)),
-        a2a_caller=A2ASdkCaller(),
-        default_backend=config.default_backend,
-        cwd=str((_ROOT / config.working_dir).resolve()),
-        profiles_dir=str((_ROOT / config.browser.profiles_dir).resolve()),
-        default_profile=config.browser.default_profile,
-        mcp_config=mcp_config,
-        session_store=store,
-    )
-    server = Server.from_descriptor(str(_DESCRIPTOR))
-    server.register(servicer)
-    return server
 
 
 def _require_token(channel: ChannelConfig, name: str) -> str:
@@ -73,22 +42,25 @@ def _require_token(channel: ChannelConfig, name: str) -> str:
     return token
 
 
-async def _serve(config: Config) -> None:
+async def _serve(config: Config, root: Path) -> None:
     """Run every enabled channel (and optional HTTP projection) concurrently."""
-    store = _session_store(config)
-    # A store inside the checkout is wiped by a redeploy that re-clones or
-    # rebuilds, silently resetting all thread memory. Fine for dev; flag it when
-    # serving so a deploy that left the default surfaces in the logs (point it
-    # at durable storage, e.g. /var/lib/james/sessions.json — see deploy/).
-    store_path = (_ROOT / config.session_store_path).resolve()
-    if store_path.is_relative_to(_ROOT):
-        print(
-            f"warning: session store {store_path} is inside the checkout and "
-            "will be lost on redeploy; set sessions.store_path to durable "
-            "storage (e.g. /var/lib/james/sessions.json).",
-            file=sys.stderr,
-        )
-    server = _build_server(config, store)
+    store = build_session_store(config, root)
+    # A store inside the CODE CHECKOUT (_ROOT) is wiped by a redeploy that
+    # re-clones or rebuilds, silently resetting all thread memory. Fine for
+    # dev; flag it when serving so a deploy that left the default surfaces in
+    # the logs (point it at durable storage, e.g. /var/lib/james/sessions.json
+    # — see deploy/). A store elsewhere (e.g. /etc/james) is durable — no
+    # warning, wherever the config file lives.
+    if store is not None:
+        store_path = (root / config.session_store_path).resolve()
+        if store_path.is_relative_to(_ROOT):
+            print(
+                f"warning: session store {store_path} is inside the checkout "
+                "and will be lost on redeploy; set sessions.store_path to "
+                "durable storage (e.g. /var/lib/james/sessions.json).",
+                file=sys.stderr,
+            )
+    server = build_server(config, root=root, store=store)
 
     async def invoke(
         request: james_pb2.DispatchRequest,
@@ -97,6 +69,7 @@ async def _serve(config: Config) -> None:
 
     coros = []
     channels = []
+    reset = store.reset if store is not None else None
     if config.telegram.enabled:
         channel = TelegramChannel(
             token=_require_token(config.telegram, "telegram"),
@@ -104,7 +77,7 @@ async def _serve(config: Config) -> None:
             invoker=invoke,
             default_backend=config.default_backend,
             max_concurrency=config.max_concurrency,
-            reset_session=store.reset,
+            reset_session=reset,
         )
         channels.append(channel)
         coros.append(channel.run())
@@ -115,7 +88,7 @@ async def _serve(config: Config) -> None:
             invoker=invoke,
             default_backend=config.default_backend,
             max_concurrency=config.max_concurrency,
-            reset_session=store.reset,
+            reset_session=reset,
         )
         channels.append(channel)
         coros.append(channel.run())
@@ -188,9 +161,10 @@ def _enabled_summary(config: Config) -> str:
     return ", ".join(parts) or "(nothing)"
 
 
-async def _cli(config: Config, backend: str, prompt: str) -> int:
+async def _cli(config: Config, root: Path, backend: str, prompt: str) -> int:
     """Run a single dispatch through the service and print the result."""
-    server = _build_server(config, _session_store(config))
+    # One-shot: conversation_id is empty, so no store is needed (stateless).
+    server = build_server(config, root=root)
     try:
         response = await server.invoke(
             "DispatchService.Dispatch",
@@ -217,7 +191,7 @@ async def _cli(config: Config, backend: str, prompt: str) -> int:
     return 1
 
 
-def _login(config: Config, profile: str) -> int:
+def _login(config: Config, root: Path, profile: str) -> int:
     """Open a headful Chrome on a browser profile so you can sign in once.
 
     After you sign in and close the window, the `shot` backend reuses that
@@ -232,14 +206,17 @@ def _login(config: Config, profile: str) -> int:
     if chromium is None:
         print("chromium not found on PATH", file=sys.stderr)
         return 127
-    profiles_root = (_ROOT / config.browser.profiles_dir).resolve()
+    profiles_root = (root / config.browser.profiles_dir).resolve()
     profile_dir = profiles_root / safe
-    profile_dir.mkdir(parents=True, exist_ok=True)
-    # The profile holds live logins (a credential) — keep it private even if the
-    # directory already existed at a looser mode.
+    profile_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+    # The profile holds live logins (a credential) — keep it private even if
+    # the directory already existed at a looser mode. Profile first, root
+    # second, each in its own suppress: a failure on one (e.g. EPERM on an
+    # unowned root) must not skip tightening the other.
+    with contextlib.suppress(OSError):
+        profile_dir.chmod(0o700)
     with contextlib.suppress(OSError):
         profiles_root.chmod(0o700)
-        profile_dir.chmod(0o700)
     print(
         f"Opening Chrome on profile '{safe}'. Sign in, then close the window.\n"
         f"profile dir: {profile_dir}",
@@ -254,6 +231,16 @@ def main(argv: list[str] | None = None) -> int:
     """Parse arguments and run the requested mode."""
     parser = argparse.ArgumentParser(
         prog="james", description="A personal AI chief-of-staff."
+    )
+    parser.add_argument(
+        "--config",
+        # `or`, not a get() default: a set-but-empty JAMES_CONFIG (common in
+        # env files) must fall back too, not resolve "" to the cwd.
+        default=os.environ.get("JAMES_CONFIG") or str(_CONFIG),
+        help=(
+            "path to config.yaml (default: the repo's, or $JAMES_CONFIG); "
+            "relative paths inside it resolve against its directory"
+        ),
     )
     sub = parser.add_subparsers(dest="mode", required=True)
     sub.add_parser("serve", help="run the enabled messaging channels")
@@ -270,13 +257,15 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    config = load_config(_CONFIG)
+    config_path = Path(args.config).resolve()
+    config = load_config(config_path)
+    root = config_path.parent
     if args.mode == "serve":
-        asyncio.run(_serve(config))
+        asyncio.run(_serve(config, root))
         return 0
     if args.mode == "login":
-        return _login(config, args.profile)
-    return asyncio.run(_cli(config, args.backend, " ".join(args.prompt)))
+        return _login(config, root, args.profile)
+    return asyncio.run(_cli(config, root, args.backend, " ".join(args.prompt)))
 
 
 if __name__ == "__main__":

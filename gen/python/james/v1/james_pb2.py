@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from google.api import annotations_pb2 as google_dot_api_dot_annotations__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x14james/v1/james.proto\x12\x08james.v1\x1a\x1cgoogle/api/annotations.proto\"\x15\n\x13ListSessionsRequest\"P\n\x0bSessionInfo\x12\x18\n\x07\x62\x61\x63kend\x18\x01 \x01(\tR\x07\x62\x61\x63kend\x12\'\n\x0f\x63onversation_id\x18\x02 \x01(\tR\x0e\x63onversationId\"I\n\x14ListSessionsResponse\x12\x31\n\x08sessions\x18\x01 \x03(\x0b\x32\x15.james.v1.SessionInfoR\x08sessions\"\x86\x01\n\x0f\x44ispatchRequest\x12\x18\n\x07\x62\x61\x63kend\x18\x01 \x01(\tR\x07\x62\x61\x63kend\x12\x16\n\x06prompt\x18\x02 \x01(\tR\x06prompt\x12\x18\n\x07\x63hannel\x18\x03 \x01(\tR\x07\x63hannel\x12\'\n\x0f\x63onversation_id\x18\x04 \x01(\tR\x0e\x63onversationId\"\x98\x01\n\x10\x44ispatchResponse\x12\x18\n\x07\x62\x61\x63kend\x18\x01 \x01(\tR\x07\x62\x61\x63kend\x12\x0e\n\x02ok\x18\x02 \x01(\x08R\x02ok\x12\x12\n\x04text\x18\x03 \x01(\tR\x04text\x12\x14\n\x05\x65rror\x18\x04 \x01(\tR\x05\x65rror\x12\x30\n\tartifacts\x18\x05 \x03(\x0b\x32\x12.james.v1.ArtifactR\tartifacts\"T\n\x08\x41rtifact\x12\x18\n\x07\x63ontent\x18\x01 \x01(\x0cR\x07\x63ontent\x12\x12\n\x04mime\x18\x02 \x01(\tR\x04mime\x12\x1a\n\x08\x66ilename\x18\x03 \x01(\tR\x08\x66ilename2\xd2\x01\n\x0f\x44ispatchService\x12Z\n\x08\x44ispatch\x12\x19.james.v1.DispatchRequest\x1a\x1a.james.v1.DispatchResponse\"\x17\x82\xd3\xe4\x93\x02\x11\"\x0c/v1/dispatch:\x01*\x12\x63\n\x0cListSessions\x12\x1d.james.v1.ListSessionsRequest\x1a\x1e.james.v1.ListSessionsResponse\"\x14\x82\xd3\xe4\x93\x02\x0e\x12\x0c/v1/sessionsb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x14james/v1/james.proto\x12\x08james.v1\x1a\x1cgoogle/api/annotations.proto\"\x15\n\x13ListBackendsRequest\"5\n\x0b\x42\x61\x63kendInfo\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n\x04kind\x18\x02 \x01(\tR\x04kind\"r\n\x14ListBackendsResponse\x12\x31\n\x08\x62\x61\x63kends\x18\x01 \x03(\x0b\x32\x15.james.v1.BackendInfoR\x08\x62\x61\x63kends\x12\'\n\x0f\x64\x65\x66\x61ult_backend\x18\x02 \x01(\tR\x0e\x64\x65\x66\x61ultBackend\"\x15\n\x13ListSessionsRequest\"P\n\x0bSessionInfo\x12\x18\n\x07\x62\x61\x63kend\x18\x01 \x01(\tR\x07\x62\x61\x63kend\x12\'\n\x0f\x63onversation_id\x18\x02 \x01(\tR\x0e\x63onversationId\"I\n\x14ListSessionsResponse\x12\x31\n\x08sessions\x18\x01 \x03(\x0b\x32\x15.james.v1.SessionInfoR\x08sessions\"\x86\x01\n\x0f\x44ispatchRequest\x12\x18\n\x07\x62\x61\x63kend\x18\x01 \x01(\tR\x07\x62\x61\x63kend\x12\x16\n\x06prompt\x18\x02 \x01(\tR\x06prompt\x12\x18\n\x07\x63hannel\x18\x03 \x01(\tR\x07\x63hannel\x12\'\n\x0f\x63onversation_id\x18\x04 \x01(\tR\x0e\x63onversationId\"\x98\x01\n\x10\x44ispatchResponse\x12\x18\n\x07\x62\x61\x63kend\x18\x01 \x01(\tR\x07\x62\x61\x63kend\x12\x0e\n\x02ok\x18\x02 \x01(\x08R\x02ok\x12\x12\n\x04text\x18\x03 \x01(\tR\x04text\x12\x14\n\x05\x65rror\x18\x04 \x01(\tR\x05\x65rror\x12\x30\n\tartifacts\x18\x05 \x03(\x0b\x32\x12.james.v1.ArtifactR\tartifacts\"T\n\x08\x41rtifact\x12\x18\n\x07\x63ontent\x18\x01 \x01(\x0cR\x07\x63ontent\x12\x12\n\x04mime\x18\x02 \x01(\tR\x04mime\x12\x1a\n\x08\x66ilename\x18\x03 \x01(\tR\x08\x66ilename2\xb7\x02\n\x0f\x44ispatchService\x12Z\n\x08\x44ispatch\x12\x19.james.v1.DispatchRequest\x1a\x1a.james.v1.DispatchResponse\"\x17\x82\xd3\xe4\x93\x02\x11\"\x0c/v1/dispatch:\x01*\x12\x63\n\x0cListSessions\x12\x1d.james.v1.ListSessionsRequest\x1a\x1e.james.v1.ListSessionsResponse\"\x14\x82\xd3\xe4\x93\x02\x0e\x12\x0c/v1/sessions\x12\x63\n\x0cListBackends\x12\x1d.james.v1.ListBackendsRequest\x1a\x1e.james.v1.ListBackendsResponse\"\x14\x82\xd3\xe4\x93\x02\x0e\x12\x0c/v1/backendsb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -36,18 +36,26 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_DISPATCHSERVICE'].methods_by_name['Dispatch']._serialized_options = b'\202\323\344\223\002\021\"\014/v1/dispatch:\001*'
   _globals['_DISPATCHSERVICE'].methods_by_name['ListSessions']._loaded_options = None
   _globals['_DISPATCHSERVICE'].methods_by_name['ListSessions']._serialized_options = b'\202\323\344\223\002\016\022\014/v1/sessions'
-  _globals['_LISTSESSIONSREQUEST']._serialized_start=64
-  _globals['_LISTSESSIONSREQUEST']._serialized_end=85
-  _globals['_SESSIONINFO']._serialized_start=87
-  _globals['_SESSIONINFO']._serialized_end=167
-  _globals['_LISTSESSIONSRESPONSE']._serialized_start=169
-  _globals['_LISTSESSIONSRESPONSE']._serialized_end=242
-  _globals['_DISPATCHREQUEST']._serialized_start=245
-  _globals['_DISPATCHREQUEST']._serialized_end=379
-  _globals['_DISPATCHRESPONSE']._serialized_start=382
-  _globals['_DISPATCHRESPONSE']._serialized_end=534
-  _globals['_ARTIFACT']._serialized_start=536
-  _globals['_ARTIFACT']._serialized_end=620
-  _globals['_DISPATCHSERVICE']._serialized_start=623
-  _globals['_DISPATCHSERVICE']._serialized_end=833
+  _globals['_DISPATCHSERVICE'].methods_by_name['ListBackends']._loaded_options = None
+  _globals['_DISPATCHSERVICE'].methods_by_name['ListBackends']._serialized_options = b'\202\323\344\223\002\016\022\014/v1/backends'
+  _globals['_LISTBACKENDSREQUEST']._serialized_start=64
+  _globals['_LISTBACKENDSREQUEST']._serialized_end=85
+  _globals['_BACKENDINFO']._serialized_start=87
+  _globals['_BACKENDINFO']._serialized_end=140
+  _globals['_LISTBACKENDSRESPONSE']._serialized_start=142
+  _globals['_LISTBACKENDSRESPONSE']._serialized_end=256
+  _globals['_LISTSESSIONSREQUEST']._serialized_start=258
+  _globals['_LISTSESSIONSREQUEST']._serialized_end=279
+  _globals['_SESSIONINFO']._serialized_start=281
+  _globals['_SESSIONINFO']._serialized_end=361
+  _globals['_LISTSESSIONSRESPONSE']._serialized_start=363
+  _globals['_LISTSESSIONSRESPONSE']._serialized_end=436
+  _globals['_DISPATCHREQUEST']._serialized_start=439
+  _globals['_DISPATCHREQUEST']._serialized_end=573
+  _globals['_DISPATCHRESPONSE']._serialized_start=576
+  _globals['_DISPATCHRESPONSE']._serialized_end=728
+  _globals['_ARTIFACT']._serialized_start=730
+  _globals['_ARTIFACT']._serialized_end=814
+  _globals['_DISPATCHSERVICE']._serialized_start=817
+  _globals['_DISPATCHSERVICE']._serialized_end=1128
 # @@protoc_insertion_point(module_scope)

@@ -24,6 +24,18 @@ def test_parse_command():
     assert parse_command("/codex") == ("codex", "")
 
 
+def test_parse_command_splits_on_any_whitespace():
+    # The command word ends at the FIRST whitespace of any kind: a newline
+    # right after the command (common when pasting a multi-line prompt) must
+    # not bleed into the backend name.
+    assert parse_command("/claude\nsummarise the README") == (
+        "claude",
+        "summarise the README",
+    )
+    assert parse_command("/codex\tdo x") == ("codex", "do x")
+    assert parse_command("/grok \n what changed?") == ("grok", "what changed?")
+
+
 def test_chunk_text_respects_limit_and_preserves_content():
     body = "\n".join(f"line {i}" for i in range(500))
     chunks = chunk_text(body, 100)
@@ -340,6 +352,28 @@ async def test_telegram_reset_command_forgets_thread():
     assert resets == ["42:7"]
     texts = [json.loads(r.content)["text"] for r in captured]
     assert any("fresh" in t.lower() for t in texts)
+
+
+async def test_telegram_reset_without_store_still_replies():
+    # Stateless mode (no session store wired): /reset must still answer, not
+    # fall through to dispatch as an unknown backend named "reset".
+    captured: list[httpx.Request] = []
+    client = _mock_client(captured)
+
+    async def invoker(_req):
+        raise AssertionError("/reset must not dispatch")
+
+    channel = TelegramChannel(
+        token="t",
+        allowed_chat_ids={42},
+        invoker=invoker,
+        default_backend="claude",
+        client=client,
+    )
+    await channel._handle({"chat": {"id": 42}, "text": "/reset"})
+    await channel.aclose()
+    texts = [json.loads(r.content)["text"] for r in captured]
+    assert any("nothing to reset" in t for t in texts)
 
 
 async def test_telegram_upload_failure_notifies_user():

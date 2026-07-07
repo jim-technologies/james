@@ -260,7 +260,10 @@ james detects the CLI's "session gone" message and starts a fresh one for that
 thread (memory is lost, the thread keeps working). `shot` and `james cli` stay
 one-shot. Sessions live in a small JSON file (`sessions.store_path` — put it on
 persistent storage for a deploy, on the **same** boundary as each CLI's own state
-under `$HOME`; see [`deploy/README.md`](deploy/README.md)).
+under `$HOME`; see [`deploy/README.md`](deploy/README.md)). Memory is the one
+piece of harness state, and it's optional: set `sessions.store_path: ""` to run
+**stateless** — no file is written and every message is a self-contained
+one-shot.
 
 > **Next (not yet built):** inline **[Approve] [Deny]** buttons for
 > tool-permission requests, via claude's stream-json protocol — the safe,
@@ -293,6 +296,34 @@ history rendering is a deferred phase. Real **terminal access** (a live TUI in
 the browser) was deliberately *not* built: it can't ride the proto projection,
 would re-expose the stripped secrets, and concurrent use corrupts a thread's
 memory — the dashboard gives the same reach without those hazards.
+
+## Embedding james in your application
+
+james is a library before it is a daemon: the composition root is importable
+([`app/wiring.py`](app/wiring.py)), so an application can build the service and
+drive it **in-process** — no channels, no HTTP, no checkout-layout assumptions:
+
+```python
+from app.config import load_config
+from app.wiring import build_server, build_session_store
+
+config = load_config(config_path)          # any path; see also $JAMES_CONFIG
+root = config_path.parent                  # relative config paths resolve here
+server = build_server(config, root=root,
+                      store=build_session_store(config, root))
+response = await server.invoke("DispatchService.Dispatch", request)
+```
+
+- **Stateless by choice:** `sessions.store_path: ""` disables the store — the
+  only harness state — so every dispatch is a pure (backend, prompt) → Result
+  call. Or inject your own `SessionStore` (a 4-method Protocol) to keep
+  conversation memory in your app's database.
+- **Out-of-process instead:** the same service is one config line away over
+  HTTP (`server.http_port` → `POST /v1/dispatch`, `GET /v1/backends`,
+  `GET /v1/sessions`), so any language can treat james as a sidecar.
+- The CLI itself is just this seam plus argument parsing: `./james --config
+  /etc/james/config.yaml serve` (or `$JAMES_CONFIG`) runs against any config
+  location.
 
 ## Deployment
 

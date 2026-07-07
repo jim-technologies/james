@@ -154,6 +154,27 @@ async function refresh() {
   }
 }
 
+async function loadBackends() {
+  // Populate the new-conversation dropdown from the registry, so the UI never
+  // drifts from biz/backends.py. The hardcoded options in index.html stay as
+  // the fallback if this call fails.
+  try {
+    const res = await rpc("ListBackends", {});
+    const names = (res.backends || []).map((b) => b.name).filter(Boolean);
+    if (!names.length) return;
+    const def = res.defaultBackend || res.default_backend || names[0];
+    const sel = $("new-backend");
+    sel.innerHTML = "";
+    for (const name of names) {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      sel.append(opt);
+    }
+    sel.value = names.includes(def) ? def : names[0];
+  } catch (_) {} // keep the static fallback list
+}
+
 function wire() {
   $("new-btn").onclick = () => {
     const row = $("new-row");
@@ -186,3 +207,4 @@ function wire() {
 
 wire();
 refresh();
+loadBackends();

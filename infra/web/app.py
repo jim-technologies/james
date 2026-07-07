@@ -47,8 +47,10 @@ class WebApp:
         static_dir: str,
     ) -> None:
         self._inner = inner
-        self._username = username
-        self._password = password
+        # Stored as bytes: compare_digest rejects non-ASCII str, and encoding
+        # once here avoids doing it per request.
+        self._username = username.encode()
+        self._password = password.encode()
         self._static = Path(static_dir).resolve()
 
     async def __call__(self, scope: dict, receive, send) -> None:
@@ -62,7 +64,7 @@ class WebApp:
             return
         path = scope.get("path", "/")
         if scope.get("method") == "GET" and (
-            path == "/" or path.startswith("/ui")
+            path in ("/", "/ui") or path.startswith("/ui/")
         ):
             await self._serve_static(path, send)
             return
@@ -77,18 +79,19 @@ class WebApp:
             if key == b"authorization":
                 header = value.decode("latin-1")
                 break
-        if not header.startswith("Basic "):
+        scheme, _, encoded = header.partition(" ")
+        if scheme.lower() != "basic" or not encoded:  # scheme is case-insens.
             return False
         try:
-            decoded = base64.b64decode(header[6:]).decode("utf-8")
+            decoded = base64.b64decode(encoded).decode("utf-8")
         except (ValueError, UnicodeDecodeError):
             return False
         user, sep, pw = decoded.partition(":")
         if not sep:
             return False
         # Constant-time compare on both fields (avoid early-exit timing leaks).
-        ok_user = hmac.compare_digest(user, self._username)
-        ok_pw = hmac.compare_digest(pw, self._password)
+        ok_user = hmac.compare_digest(user.encode(), self._username)
+        ok_pw = hmac.compare_digest(pw.encode(), self._password)
         return ok_user and ok_pw
 
     async def _deny(self, send) -> None:
