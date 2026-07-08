@@ -319,8 +319,13 @@ response = await server.invoke("DispatchService.Dispatch", request)
   call. Or inject your own `SessionStore` (a 4-method Protocol) to keep
   conversation memory in your app's database.
 - **Out-of-process instead:** the same service is one config line away over
-  HTTP (`server.http_port` → `POST /v1/dispatch`, `GET /v1/backends`,
-  `GET /v1/sessions`), so any language can treat james as a sidecar.
+  HTTP (`server.http_port`, Connect-JSON:
+  `POST /james.v1.DispatchService/Dispatch` / `ListSessions` / `ListBackends`,
+  plus `GET /healthz`), so any language can treat james as a sidecar. ⚠ That
+  port binds all interfaces with **no auth** — keep it firewalled, or use the
+  web dashboard port instead: it proxies the same RPCs behind fail-closed
+  Basic auth on loopback (`curl -u james:$PASSWORD
+  http://127.0.0.1:8765/james.v1.DispatchService/Dispatch …`).
 - The CLI itself is just this seam plus argument parsing: `./james --config
   /etc/james/config.yaml serve` (or `$JAMES_CONFIG`) runs against any config
   location.

@@ -30,8 +30,8 @@
         "pkg-path": "protobuf",
         "version": "33.5"
       },
-      "python313": {
-        "pkg-path": "python313"
+      "python314": {
+        "pkg-path": "python314"
       },
       "sops": {
         "pkg-path": "sops"
@@ -41,7 +41,7 @@
       }
     },
     "vars": {
-      "UV_PYTHON": "3.13"
+      "UV_PYTHON": "3.14"
     },
     "hook": {
       "on-activate": "  # Make the flox-provided libstdc++.so.6 (libgcc) discoverable to Python's\n  # native wheels (grpcio, pulled in by invariant-protocol). Linux only; on\n  # macOS $FLOX_ENV/lib has no libstdc++ and the system libc++ is used.\n  export LD_LIBRARY_PATH=\"$FLOX_ENV/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}\"\n"
@@ -697,132 +697,127 @@
       "priority": 5
     },
     {
-      "attr_path": "python313",
+      "attr_path": "python314",
       "broken": false,
-      "derivation": "/nix/store/r64rcnyynpinf8l85b48ialiqrjmx0dv-python3-3.13.12.drv",
+      "derivation": "/nix/store/hjijl0624d460wzyyprv8dcc61kizbv3-python3-3.14.3.drv",
       "description": "High-level dynamically-typed programming language",
-      "install_id": "python313",
+      "install_id": "python314",
       "license": "Python-2.0",
       "locked_url": "https://github.com/flox/nixpkgs?rev=b40629efe5d6ec48dd1efba650c797ddbd39ace0",
-      "name": "python3-3.13.12",
-      "pname": "python313",
+      "name": "python3-3.14.3",
+      "pname": "python314",
       "rev": "b40629efe5d6ec48dd1efba650c797ddbd39ace0",
       "rev_count": 964859,
       "rev_date": "2026-03-18T08:17:15Z",
-      "scrape_date": "2026-03-20T00:40:51.728713Z",
+      "scrape_date": "2026-03-20T00:41:12.974260Z",
       "stabilities": [
         "staging",
         "unstable"
       ],
       "unfree": false,
-      "version": "python3-3.13.12",
+      "version": "python3-3.14.3",
       "outputs_to_install": [
+        "out",
         "out",
         "out",
         "out"
       ],
       "outputs": {
-        "out": "/nix/store/h2y0a3x6hgznqq54rjszbi2x0rdnlgvb-python3-3.13.12"
+        "out": "/nix/store/gzycj9hwfmvm8qvh41lf8afmcdxnriig-python3-3.14.3"
       },
       "system": "aarch64-darwin",
       "group": "toplevel",
       "priority": 5
     },
     {
-      "attr_path": "python313",
+      "attr_path": "python314",
       "broken": false,
-      "derivation": "/nix/store/1bl0sfah2gjhbgybi4w0dr0969yws25a-python3-3.13.12.drv",
+      "derivation": "/nix/store/x1rf4ibibx4dvifpsa7wir4r403xzsiq-python3-3.14.3.drv",
       "description": "High-level dynamically-typed programming language",
-      "install_id": "python313",
+      "install_id": "python314",
       "license": "Python-2.0",
       "locked_url": "https://github.com/flox/nixpkgs?rev=b40629efe5d6ec48dd1efba650c797ddbd39ace0",
-      "name": "python3-3.13.12",
-      "pname": "python313",
+      "name": "python3-3.14.3",
+      "pname": "python314",
       "rev": "b40629efe5d6ec48dd1efba650c797ddbd39ace0",
       "rev_count": 964859,
       "rev_date": "2026-03-18T08:17:15Z",
-      "scrape_date": "2026-03-20T01:12:40.332542Z",
+      "scrape_date": "2026-03-20T01:13:07.693681Z",
       "stabilities": [
         "staging",
         "unstable"
       ],
       "unfree": false,
-      "version": "python3-3.13.12",
+      "version": "python3-3.14.3",
       "outputs_to_install": [
-        "out",
-        "out",
         "out",
         "out"
       ],
       "outputs": {
-        "debug": "/nix/store/09i7jzzkrzl2hd2dlxgl8r2rxb7v0b72-python3-3.13.12-debug",
-        "out": "/nix/store/jbxc3f1gbnnx5wwhby9z56w95k44n0sw-python3-3.13.12"
+        "debug": "/nix/store/vy7zp00nd9n4pw51ldljbal75hznf5ns-python3-3.14.3-debug",
+        "out": "/nix/store/qq0qwcldmiylcy4c0a0xilqwmbkmjd3y-python3-3.14.3"
       },
       "system": "aarch64-linux",
       "group": "toplevel",
       "priority": 5
     },
     {
-      "attr_path": "python313",
+      "attr_path": "python314",
       "broken": false,
-      "derivation": "/nix/store/kz8cs222p5jjbrplrsmf6xwg1k9krxn5-python3-3.13.12.drv",
+      "derivation": "/nix/store/ph5mfj3rzwz9lvkjfrcb4md7z4z2ksyq-python3-3.14.3.drv",
       "description": "High-level dynamically-typed programming language",
-      "install_id": "python313",
+      "install_id": "python314",
       "license": "Python-2.0",
       "locked_url": "https://github.com/flox/nixpkgs?rev=b40629efe5d6ec48dd1efba650c797ddbd39ace0",
-      "name": "python3-3.13.12",
-      "pname": "python313",
+      "name": "python3-3.14.3",
+      "pname": "python314",
       "rev": "b40629efe5d6ec48dd1efba650c797ddbd39ace0",
       "rev_count": 964859,
       "rev_date": "2026-03-18T08:17:15Z",
-      "scrape_date": "2026-03-20T01:42:15.699550Z",
+      "scrape_date": "2026-03-20T01:42:35.878519Z",
       "stabilities": [
         "staging",
         "unstable"
       ],
       "unfree": false,
-      "version": "python3-3.13.12",
+      "version": "python3-3.14.3",
       "outputs_to_install": [
-        "out",
         "out"
       ],
       "outputs": {
-        "out": "/nix/store/6lx7vd1lf0dsx5prsc915h0ibr1i7mci-python3-3.13.12"
+        "out": "/nix/store/axbfzmxga1ka88m9fvn960nybc48i9h5-python3-3.14.3"
       },
       "system": "x86_64-darwin",
       "group": "toplevel",
       "priority": 5
     },
     {
-      "attr_path": "python313",
+      "attr_path": "python314",
       "broken": false,
-      "derivation": "/nix/store/pa77d4q4jilknq4zgakh8099frx4yyvy-python3-3.13.12.drv",
+      "derivation": "/nix/store/lnziwm38sa6vjpsq7mghi9k27a1fvmlc-python3-3.14.3.drv",
       "description": "High-level dynamically-typed programming language",
-      "install_id": "python313",
+      "install_id": "python314",
       "license": "Python-2.0",
       "locked_url": "https://github.com/flox/nixpkgs?rev=b40629efe5d6ec48dd1efba650c797ddbd39ace0",
-      "name": "python3-3.13.12",
-      "pname": "python313",
+      "name": "python3-3.14.3",
+      "pname": "python314",
       "rev": "b40629efe5d6ec48dd1efba650c797ddbd39ace0",
       "rev_count": 964859,
       "rev_date": "2026-03-18T08:17:15Z",
-      "scrape_date": "2026-03-20T02:17:32.312546Z",
+      "scrape_date": "2026-03-20T02:18:00.569318Z",
       "stabilities": [
         "staging",
         "unstable"
       ],
       "unfree": false,
-      "version": "python3-3.13.12",
+      "version": "python3-3.14.3",
       "outputs_to_install": [
-        "out",
-        "out",
-        "out",
         "out",
         "out"
       ],
       "outputs": {
-        "debug": "/nix/store/9bwcfcgqklihjs89b0qfjlpl4wlbflkd-python3-3.13.12-debug",
-        "out": "/nix/store/m1fw8l8y9ycxh5dzispbb7cwl6rra14l-python3-3.13.12"
+        "debug": "/nix/store/lqaaivl5ppkgprnawizmzixcjx2bw4hi-python3-3.14.3-debug",
+        "out": "/nix/store/8gnchv834z56s561v3sx2h0ra1a2xn46-python3-3.14.3"
       },
       "system": "x86_64-linux",
       "group": "toplevel",

@@ -8,14 +8,17 @@ schema-version = "1.12.0"
 ## -------------------------------------------------------------------
 [install]
 # Language runtime + package manager (Python deps live in uv.lock, not here).
-python313.pkg-path = "python313"
+# python314 is the runtime; the code keeps a 3.13 compatibility floor
+# (requires-python / ruff target / ty), so hosts with only 3.13 still work.
+python314.pkg-path = "python314"
 uv.pkg-path = "uv"
 # Proto toolchain: buf needs go; protoc (from protobuf) backs `protoc_builtin`.
 buf.pkg-path = "buf"
 go.pkg-path = "go"
 # Pin protoc to the 33.x line: it emits Python gencode "6.33.x", matching the
-# Python protobuf 6.33 runtime (grpcio caps protobuf at <7). protoc 34+ emits
-# "7.34.x" gencode that no released Python protobuf runtime can load yet.
+# Python protobuf 6.33 runtime. protobuf 7.x runtimes exist for protoc 34+
+# gencode, but a2a-sdk caps protobuf at <7 — move protoc, the committed
+# gencode, and the runtime to the 7 line together once a2a-sdk lifts the cap.
 protobuf.pkg-path = "protobuf"
 protobuf.version = "33.5"
 # Secrets: sops + age decrypt the dotenv at runtime (`sops exec-env`).
@@ -37,7 +40,7 @@ chromium.systems = ["aarch64-linux", "x86_64-linux"]
 ## -------------------------------------------------------------------
 [vars]
 # Pin uv to the flox-provided interpreter so `uv run/sync` never fetches another.
-UV_PYTHON = "3.13"
+UV_PYTHON = "3.14"
 
 
 ## Activation Hook ---------------------------------------------------

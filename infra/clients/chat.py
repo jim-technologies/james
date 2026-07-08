@@ -2,17 +2,18 @@
 
 A thin adapter over invariant-protocol's ``connect_http``: it builds a Server
 from the committed descriptor, scopes it to the chat service, injects the API
-key as a bearer header, and invokes the completion tool. The provider's REST
-mapping (method, path, body) comes from the google.api.http annotation in the
-proto, not from code here. Returns (ok, text, error); a missing key or any
-transport error is returned rather than raised.
+key as a per-connection bearer header (``auth=``), and invokes the completion
+tool. The provider's REST mapping (method, path, body) comes from the
+google.api.http annotation in the proto, not from code here. Returns
+(ok, text, error); a missing key or any transport error is returned rather
+than raised.
 """
 
 from __future__ import annotations
 
 import os
 
-from invariant import Server
+from invariant import ChannelOptions, Server
 
 # Importing the generated stub registers the chat messages in the default
 # descriptor pool, which invariant-protocol's HTTP client resolves against.
@@ -47,10 +48,16 @@ class ChatApiCaller:
         server = None
         try:
             server = Server.from_descriptor(self._descriptor_path)
-            server.use_http_header_provider(
-                lambda _req: {"Authorization": f"Bearer {api_key}"}
+            # Per-connection auth + timeouts (the server-global header hook was
+            # removed in invariant-protocol 0.3): the bearer header rides only
+            # this connection, and the generous read timeout covers a slow
+            # completion.
+            server.connect_http(
+                base_url,
+                service_name,
+                auth=lambda _req: {"Authorization": f"Bearer {api_key}"},
+                options=ChannelOptions(read_timeout=timeout_s),
             )
-            server.connect_http(base_url, service_name, timeout=timeout_s)
             request = chat_pb2.CreateChatCompletionRequest(
                 model=model,
                 messages=[chat_pb2.ChatMessage(role="user", content=prompt)],

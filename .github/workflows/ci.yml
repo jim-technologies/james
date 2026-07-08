@@ -9,7 +9,7 @@ jobs:
   ci:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: flox/install-flox-action@v2
       # Reproduces local `flox activate -- make ci`: fmt-check, lint, typecheck,
       # audit, tests, and proto drift (gen-check). Deps are fetched from the BSR

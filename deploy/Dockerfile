@@ -10,10 +10,10 @@
 # as volumes (see deploy/README.md).
 #
 # Build (from the repo root):  docker build -f deploy/Dockerfile -t james:latest .
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 # uv from the official image (pinned to match the repo's uv.lock toolchain).
-COPY --from=ghcr.io/astral-sh/uv:0.11.19 /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.11.27 /uv /usr/local/bin/uv
 
 # git: invariant-protocol is a git dependency in uv.lock. chromium + fonts: the
 # `shot` backend (web screenshots). Drop chromium/fonts to slim the image if you

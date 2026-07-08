@@ -7,30 +7,38 @@ requires-python = ">=3.13"
 license = "MIT"
 dependencies = [
   "invariant-protocol",
-  "httpx>=0.27",
-  "websockets>=13",
+  "httpx>=0.28",
+  "websockets>=16",
   # ASGI server for the optional web dashboard (app/__main__._serve_web); also a
   # transitive dep of invariant-protocol's HTTP projection, declared here since
   # we use it directly.
-  "uvicorn>=0.30",
+  "uvicorn>=0.50",
   # Official A2A SDK for the `a2a` backends — gRPC-primary with HTTP (JSON-RPC)
   # fallback, transport negotiation from the peer's Agent Card, A2A v1.0 (+ 0.3
-  # compat). The [grpc] extra adds the gRPC transport. Stays within protobuf<7.
+  # compat). The [grpc] extra adds the gRPC transport. Caps protobuf at <7.
   "a2a-sdk[grpc]>=1.1",
   # 6.33 line to match the flox protoc (libprotoc 33.x → gencode 6.33.x); the
-  # runtime must be >= the committed gencode. grpcio caps protobuf at <7.
+  # runtime must be >= the committed gencode. protobuf 7.x exists, but a2a-sdk
+  # caps protobuf at <7 — protoc/gencode/runtime move to 7 together when it
+  # lifts that cap.
   "protobuf>=6.33,<7",
   "pyyaml>=6",
 ]
 
 [dependency-groups]
-dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6", "ty", "pip-audit"]
+dev = [
+  "pytest>=9",
+  "pytest-asyncio>=1.4",
+  "ruff>=0.15",
+  "ty>=0.0.56",
+  "pip-audit>=2.10",
+]
 
 [tool.uv]
 package = false
 
 [tool.uv.sources]
-invariant-protocol = { git = "https://github.com/jim-technologies/invariantprotocol.git", subdirectory = "python", rev = "128690f11858364967c6ba619325f3b51c81f3d9" }
+invariant-protocol = { git = "https://github.com/jim-technologies/invariantprotocol.git", subdirectory = "python", rev = "589bd3a8bb1dbff5ef3e2eca799b51feb3e500e1" }
 
 [tool.ruff]
 line-length = 80

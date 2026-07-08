@@ -76,6 +76,12 @@ channels:
     # Fail-closed allowlist of channel ids. Empty = nobody.
     allowed_channel_ids: []
 
-# Optional: also project DispatchService over HTTP (POST /v1/dispatch).
+# Optional: also project DispatchService over HTTP (Connect-JSON), e.g.
+#   POST /james.v1.DispatchService/Dispatch      {"backend","prompt","conversation_id"}
+#   POST /james.v1.DispatchService/ListBackends  {}
+#   GET  /healthz
+# ⚠ This port binds 0.0.0.0 with NO auth — anyone who reaches it drives your
+# agents. Keep it firewalled/loopback-proxied, or use the web port instead
+# (same RPCs behind Basic auth on loopback).
 # server:
 #   http_port: 8080
