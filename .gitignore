@@ -3,10 +3,10 @@ __pycache__/
 *.py[cod]
 .venv/
 
-# Secrets: never commit plaintext or encrypted dotenvs; only the .example is kept.
+# Secrets: never commit a dotenv, plaintext or encrypted. There is no .example
+# either — the variable names are documented in the README.
 secrets.env
 secrets.*.env
-!secrets.example.env
 
 # Browser profiles hold live logins — never commit them.
 .browser-profiles/

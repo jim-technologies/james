@@ -1,5 +1,5 @@
 # james configuration — structure only, never secrets. Secrets are read from the
-# environment at runtime (see secrets.example.env). Convention over configuration.
+# environment at runtime (see README → Setup → Secrets). Convention over configuration.
 
 # Backend used when a message names none (a bare message, or `james cli` with no
 # --backend). Must be a key in biz/backends.py REGISTRY.

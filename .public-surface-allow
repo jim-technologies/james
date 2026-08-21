@@ -23,4 +23,3 @@ secret-store | config.yaml | the runtime config comments name the decrypted envi
 secret-store | deploy/* | the deploy tooling invokes the encrypt-at-rest CLI to decrypt the dotenv on the host; the encrypted file and the key are supplied by the operator and are not tracked | %73ops|%73ecrets\.enc|/run/%73ecrets/
 secret-store | flake.nix | the dev shell ships the encrypt-at-rest CLI and the NixOS module documents the decrypted dotenv path | %73ops
 secret-store | .flox/env/* | the flox manifest pins the encrypt-at-rest CLI package for the development environment | %73ops
-secret-store | secrets.example.env | a placeholder template naming the variables the operator's encrypted dotenv must define; it carries no values | %73ops|%73ecrets\.enc

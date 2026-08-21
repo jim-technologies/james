@@ -211,15 +211,45 @@ capture the session id, so it requires those CLIs' machine-readable output to
 stay enabled (the backend rows force `--json` / `--output-format json` /
 `--format json` — don't override them).
 
+### Secrets
+
 Secrets (bot tokens, API keys) are read from the **environment**, supplied at
-runtime from a **SOPS + age**-encrypted dotenv — never a committed plaintext
-file. See [`secrets.example.env`](secrets.example.env):
+runtime from a **SOPS + age**-encrypted dotenv. Nothing about them is tracked
+here — no plaintext file, no encrypted file, no `.example` template to copy.
+The list below is the reference for what to define; your encrypted file is the
+only place the values ever live.
+
+Create it directly, so no plaintext copy is ever written to disk — your editor
+opens on a new file and sops encrypts what you save:
 
 ```bash
-cp secrets.example.env secrets.env          # fill in values
-sops --encrypt --age <your-age-recipient> secrets.env > secrets.enc.env
-rm secrets.env
+SOPS_AGE_RECIPIENTS=<your-age-recipient> sops secrets.enc.env
+# (`sops edit secrets.enc.env` on newer sops; keep the file and your age key
+#  outside `working_dir` — cli agents have read/write there)
 ```
+
+Define only what you actually enable; every one of these is **fail-closed**, so
+an unset variable disables the feature that needs it rather than degrading it:
+
+| Variable | Needed for |
+|---|---|
+| `TELEGRAM_BOT_TOKEN` | the Telegram channel (`channels.telegram`) |
+| `DISCORD_BOT_TOKEN` | the Discord channel (`channels.discord`) |
+| `OPENAI_API_KEY` | the `gpt` (api) backend, and any OpenAI-compatible provider you point it at |
+| `JAMES_WEB_PASSWORD` | the optional web dashboard's Basic-auth password (`web.enabled`) |
+| `OPENCLAW_A2A_TOKEN` | the `openclaw` a2a backend — the peer's bearer token, sent only to that peer |
+| `HERMES_A2A_TOKEN` | the disabled `hermes` a2a placeholder; leave it unset |
+
+The names are configuration, not constants: channels read the variable named by
+their `token_env`, the web dashboard reads `web.token_env`, and a backend reads
+the name in its `secret_env` — the table lists the defaults shipped in
+[`config.yaml`](config.yaml) and [`biz/backends.py`](biz/backends.py). The `cli`
+backends (claude, codex, grok, opencode) use their own CLI logins and want no
+key here at all; `ANTHROPIC_API_KEY` is deliberately *stripped* from every cli
+backend's environment so a subscription login can never fall back to a metered
+key. A credential you want an *agent* to use (a `DATABASE_URL`, say) is a
+different thing with different rules — see
+[Secrets the agents can use](#secrets-the-agents-can-use-eg-a-database).
 
 Edit [`config.yaml`](config.yaml) to enable channels and set the **fail-closed
 allowlist** of chat/channel ids.
