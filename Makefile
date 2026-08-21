@@ -44,6 +44,10 @@ gen-check:
 
 ci: check gen-check
 
+# The gate. `make validate` is the one gate verb in every public repository in
+# this organisation; here it routes to `ci`, this repo's full gate.
+validate: ci
+
 # Project the canonical MCP config (mcp/servers.mcp.json, Claude Code format) to
 # the other agents via invariantmcp. claude reads it directly through
 # --mcp-config (set mcp.config_path); codex gets ~/.codex/config.toml here.
@@ -62,4 +66,4 @@ mcp:
 	@echo "MCP synced to codex ($(CODEX_CONFIG)). grok: not an invariantmcp"
 	@echo "target — add servers with 'grok mcp add ...'."
 
-.PHONY: fmt fmt-check lint lint-fix typecheck audit public-surface test check gen-check ci mcp
+.PHONY: fmt fmt-check lint lint-fix typecheck audit public-surface test check gen-check ci validate mcp
