@@ -408,7 +408,8 @@ flox activate -- make validate      # the gate — exactly what CI runs
 `validate` is the gate verb every public repository in this organisation shares;
 here it routes to `ci`, which CI still invokes and which stays valid to type. Both
 run the same checks: `fmt-check` + `lint` + `typecheck` + `audit` +
-`public-surface` + `test` + `gen-check`.
+`public-surface` + `test` + `gen-check`. The verbs, and the rules behind them,
+are the same everywhere: see [`MAKEFILE-CONTRACT.md`](MAKEFILE-CONTRACT.md).
 `public-surface` runs `scripts/public-surface-check`, the guard
 every public repository in this organisation shares: it scans the content of
 every tracked file, every tracked path and the commit messages a push would
