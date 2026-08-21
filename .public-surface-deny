@@ -1,0 +1,10 @@
+# .public-surface-deny - denials this repository adds on top of the fleet baseline.
+#
+#     category | path-glob | reason | pattern
+#
+# The allowlist lets this repository name its secrets tool in prose and in deploy
+# tooling. That mask must not extend to the tool's own configuration file, which
+# names the recipients a store is encrypted to, so it is denied again here under
+# a category of its own that the allowlist does not touch.
+
+secret-store-config | * | an encrypted secret store and its creation-rules file never belong in a public repository, whatever the surrounding documentation is allowed to say | (^|/)\.%73ops\.ya?ml($|[^a-z0-9])

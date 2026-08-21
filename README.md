@@ -373,7 +373,16 @@ larger the aggregate blast radius; keep the browser single-tenant to james.
 flox activate -- make ci      # exactly what CI runs
 ```
 
-`ci` = `fmt-check` + `lint` + `typecheck` + `audit` + `test` + `gen-check`.
+`ci` = `fmt-check` + `lint` + `typecheck` + `audit` + `public-surface` + `test` +
+`gen-check`. `public-surface` runs `scripts/public-surface-check`, the guard
+every public repository in this organisation shares: it scans the content of
+every tracked file, every tracked path and the commit messages a push would
+publish, and fails on private repository names, internal infrastructure,
+codenames, cluster shapes, credential shapes, secret stores and private remotes.
+Never edit the script — this repository's justified exceptions (it documents its
+own encrypt-at-rest deploy tooling, which the guard would otherwise flag) live in
+`.public-surface-allow`, and `.public-surface-deny` narrows those exceptions back
+so a store's configuration file still cannot be tracked.
 Tests are two-tier: unit tests always run with no network or keys (dependencies
 are injected, never monkeypatched); live tests are gated behind
 `RUN_LIVE_TESTS=1`. The generated proto code under `gen/` is committed, and

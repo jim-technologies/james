@@ -1,0 +1,26 @@
+# .public-surface-allow - justified exceptions to scripts/public-surface-check.
+#
+#     category | path-glob | reason | pattern
+#
+# A rule masks exactly the text it matches, only under the paths it names, only
+# for the category it names. Everything else on the line is still checked.
+#
+# Patterns use %HH hex escapes so this file does not spell the terms it excuses;
+# %73 is "s". Decode a pattern before reviewing a rule.
+#
+# Context for every rule below: this project's secrets mechanism is an
+# encrypt-at-rest CLI plus an age recipient, and that mechanism is part of what
+# the project publishes - the deploy tooling, the dev environment manifests and
+# the README all have to name the tool and the encrypted dotenv it decrypts at
+# runtime. No encrypted store, no key file and no dotenv with values in it is
+# tracked here; the operator supplies those on the deploy host. So the
+# exceptions are scoped to the documentation and deploy paths, never
+# repository-wide, and .public-surface-deny still refuses a tracked
+# configuration file for that tool anywhere in the tree.
+
+secret-store | README.md | the README documents the encrypt-at-rest dotenv this project decrypts at runtime; the store itself lives on the deploy host, never in the repository | %73ops|%73ecrets\.enc
+secret-store | config.yaml | the runtime config comments name the decrypted environment the process inherits, and warn the operator against putting the store in the working directory | %73ops|%73ecrets\.enc
+secret-store | deploy/* | the deploy tooling invokes the encrypt-at-rest CLI to decrypt the dotenv on the host; the encrypted file and the key are supplied by the operator and are not tracked | %73ops|%73ecrets\.enc|/run/%73ecrets/
+secret-store | flake.nix | the dev shell ships the encrypt-at-rest CLI and the NixOS module documents the decrypted dotenv path | %73ops
+secret-store | .flox/env/* | the flox manifest pins the encrypt-at-rest CLI package for the development environment | %73ops
+secret-store | secrets.example.env | a placeholder template naming the variables the operator's encrypted dotenv must define; it carries no values | %73ops|%73ecrets\.enc

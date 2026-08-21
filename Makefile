@@ -22,10 +22,16 @@ typecheck:
 audit:
 	uv run pip-audit
 
+# Guard the public surface: tracked content, tracked paths, and the commit
+# messages a push would publish. Exceptions live in .public-surface-allow.
+public-surface:
+	scripts/public-surface-check
+	scripts/public-surface-check-test
+
 test:
 	uv run pytest -q          # RUN_LIVE_TESTS=1 to also run live tests
 
-check: fmt-check lint typecheck audit test
+check: fmt-check lint typecheck audit public-surface test
 
 # Regenerate proto code, then fail if anything under gen/ changed (drift).
 gen-check:
@@ -56,4 +62,4 @@ mcp:
 	@echo "MCP synced to codex ($(CODEX_CONFIG)). grok: not an invariantmcp"
 	@echo "target — add servers with 'grok mcp add ...'."
 
-.PHONY: fmt fmt-check lint lint-fix typecheck audit test check gen-check ci mcp
+.PHONY: fmt fmt-check lint lint-fix typecheck audit public-surface test check gen-check ci mcp
