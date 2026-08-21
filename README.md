@@ -228,8 +228,10 @@ SOPS_AGE_RECIPIENTS=<your-age-recipient> sops secrets.enc.env
 #  outside `working_dir` — cli agents have read/write there)
 ```
 
-Define only what you actually enable; every one of these is **fail-closed**, so
-an unset variable disables the feature that needs it rather than degrading it:
+Define only what you actually enable. Missing values fail closed, never
+silently: an enabled channel whose token is unset refuses to start (exit 2), a
+backend whose key is unset stays unusable and says so, and an empty dashboard
+password serves nobody.
 
 | Variable | Needed for |
 |---|---|
